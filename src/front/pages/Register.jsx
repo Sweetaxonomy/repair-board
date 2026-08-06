@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  Building2,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  UserRound,
+} from "lucide-react";
+
 import { registerWorkshop } from "../services/api";
-import "../components/ServiceStatusBoard.css";
-import { Eye, EyeOff } from "lucide-react";
 
 const initialState = {
   company_name: "",
@@ -14,7 +20,7 @@ const initialState = {
   postal_code: "",
   province: "",
   country: "Spain",
-  website: "",
+
   manager_first_name: "",
   manager_last_name: "",
   manager_dni: "",
@@ -33,26 +39,30 @@ const patterns = {
 };
 
 export const Register = () => {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState(initialState);
   const [errors, setErrors] = useState({});
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [serverMsg, setServerMsg] = useState("");
-  const [registrationSuccess, setRegistrationSuccess] = useState(null);
+  const [registrationSuccess, setRegistrationSuccess] =
+    useState(null);
+
   const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-  const navigate = useNavigate();
+  const [showPasswordConfirm, setShowPasswordConfirm] =
+    useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((prev) => ({
-      ...prev,
+    setForm((previousForm) => ({
+      ...previousForm,
       [name]: value,
     }));
 
-    setErrors((prev) => ({
-      ...prev,
+    setErrors((previousErrors) => ({
+      ...previousErrors,
       [name]: "",
     }));
 
@@ -60,77 +70,124 @@ export const Register = () => {
   };
 
   const validateWorkshopStep = () => {
-    const e = {};
+    const nextErrors = {};
 
-    if (!form.company_name.trim()) {
-      e.company_name = "Workshop name is required";
+    const companyName = form.company_name.trim();
+    const cif = form.cif.trim().toUpperCase();
+    const workshopPhone = form.phone.trim();
+    const workshopEmail = form.email.trim();
+
+    if (!companyName) {
+      nextErrors.company_name = "Workshop name is required";
     }
 
-    if (!patterns.cif.test(form.cif)) {
-      e.cif = "Invalid CIF. Example: B12345678";
+    /*
+     * CIF is optional.
+     * We only validate its format when the user writes something.
+     */
+    if (cif && !patterns.cif.test(cif)) {
+      nextErrors.cif = "Invalid CIF. Example: B12345678";
     }
 
-    if (!patterns.phone.test(form.phone)) {
-      e.phone = "Invalid phone number";
+    /*
+     * Workshop phone is optional.
+     * When omitted, the backend uses the administrator phone.
+     */
+    if (
+      workshopPhone &&
+      !patterns.phone.test(workshopPhone)
+    ) {
+      nextErrors.phone = "Invalid phone number";
     }
 
-    if (!patterns.email.test(form.email)) {
-      e.email = "Invalid email";
+    /*
+     * Public workshop email is optional.
+     * When omitted, the backend uses the administrator email.
+     */
+    if (
+      workshopEmail &&
+      !patterns.email.test(workshopEmail)
+    ) {
+      nextErrors.email = "Invalid email";
     }
 
     if (!form.address.trim()) {
-      e.address = "Address is required";
+      nextErrors.address = "Address is required";
+    }
+
+    if (!form.postal_code.trim()) {
+      nextErrors.postal_code = "Postal code is required";
+    } else if (
+      !patterns.postal_code.test(form.postal_code.trim())
+    ) {
+      nextErrors.postal_code =
+        "Postal code must have 5 digits";
     }
 
     if (!form.city.trim()) {
-      e.city = "City is required";
-    }
-
-    if (!patterns.postal_code.test(form.postal_code)) {
-      e.postal_code = "Postal code must have 5 digits";
+      nextErrors.city = "City is required";
     }
 
     if (!form.province.trim()) {
-      e.province = "Province is required";
+      nextErrors.province = "Province is required";
     }
 
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    if (!form.country.trim()) {
+      nextErrors.country = "Country is required";
+    }
+
+    setErrors(nextErrors);
+
+    return Object.keys(nextErrors).length === 0;
   };
 
   const validateAdminStep = () => {
-    const e = {};
+    const nextErrors = {};
+
+    const dni = form.manager_dni.trim().toUpperCase();
+    const phone = form.manager_phone.trim();
+    const email = form.manager_email.trim();
 
     if (!form.manager_first_name.trim()) {
-      e.manager_first_name = "First name is required";
+      nextErrors.manager_first_name =
+        "First name is required";
     }
 
     if (!form.manager_last_name.trim()) {
-      e.manager_last_name = "Last name is required";
+      nextErrors.manager_last_name =
+        "Last name is required";
     }
 
-    if (!patterns.dni.test(form.manager_dni)) {
-      e.manager_dni = "Invalid DNI. Example: 12345678A";
+    if (!patterns.dni.test(dni)) {
+      nextErrors.manager_dni =
+        "Invalid DNI. Example: 12345678A";
     }
 
-    if (!patterns.phone.test(form.manager_phone)) {
-      e.manager_phone = "Invalid phone number";
+    if (!patterns.phone.test(phone)) {
+      nextErrors.manager_phone =
+        "Invalid phone number";
     }
 
-    if (!patterns.email.test(form.manager_email)) {
-      e.manager_email = "Invalid email";
+    if (!patterns.email.test(email)) {
+      nextErrors.manager_email = "Invalid email";
     }
 
     if (form.manager_password.length < 8) {
-      e.manager_password = "Minimum 8 characters";
+      nextErrors.manager_password =
+        "Password must contain at least 8 characters";
     }
 
-    if (form.manager_password !== form.manager_password_confirm) {
-      e.manager_password_confirm = "Passwords do not match";
+    if (
+      form.manager_password !==
+      form.manager_password_confirm
+    ) {
+      nextErrors.manager_password_confirm =
+        "Passwords do not match";
     }
 
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    setErrors(nextErrors);
+
+    return Object.keys(nextErrors).length === 0;
   };
 
   const validateAll = () => {
@@ -152,25 +209,14 @@ export const Register = () => {
   };
 
   const buildFullAddress = () => {
-    const parts = [
+    const addressParts = [
       form.address.trim(),
       `${form.postal_code.trim()} ${form.city.trim()}`.trim(),
       form.province.trim(),
       form.country.trim(),
     ];
 
-    return parts.filter(Boolean).join(", ");
-  };
-
-  const handleNextStep = () => {
-    setServerMsg("");
-
-    if (!validateWorkshopStep()) {
-      return;
-    }
-
-    setErrors({});
-    setCurrentStep(2);
+    return addressParts.filter(Boolean).join(", ");
   };
 
   const handlePreviousStep = () => {
@@ -179,7 +225,7 @@ export const Register = () => {
     setCurrentStep(1);
   };
 
-  const handleStepTwoClick = () => {
+  const handleNextStep = () => {
     setServerMsg("");
 
     if (!validateWorkshopStep()) {
@@ -219,335 +265,650 @@ export const Register = () => {
 
         user_email: form.manager_email.trim(),
         password: form.manager_password,
-        password_confirm: form.manager_password_confirm,
+        password_confirm:
+          form.manager_password_confirm,
       };
 
-      const res = await registerWorkshop(payload);
+      const response = await registerWorkshop(payload);
 
-      if (!res.ok) {
+      if (!response.ok) {
         setServerMsg(
-          res.data?.error ||
-          res.data?.message ||
-          "Error creating workshop"
+          response.data?.error ||
+            response.data?.message ||
+            "Error creating workshop"
         );
+
         return;
       }
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      localStorage.setItem("employee", JSON.stringify(res.data.employee));
-      localStorage.setItem("workshop", JSON.stringify(res.data.workshop));
+      localStorage.setItem(
+        "token",
+        response.data.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(response.data.user)
+      );
+
+      localStorage.setItem(
+        "employee",
+        JSON.stringify(response.data.employee)
+      );
+
+      localStorage.setItem(
+        "workshop",
+        JSON.stringify(response.data.workshop)
+      );
 
       setRegistrationSuccess({
-        workshop: res.data.workshop,
-        user: res.data.user,
-        employee: res.data.employee,
+        workshop: response.data.workshop,
+        user: response.data.user,
+        employee: response.data.employee,
       });
     } catch (error) {
       console.error("Register error:", error);
-      setServerMsg("Network error. Please try again.");
+
+      setServerMsg(
+        "Network error. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const field = (name, label, type = "text", extra = {}) => (
-    <div className="mb-3">
-      <label className="form-label" htmlFor={name}>
-        {label}
-      </label>
-
-      <input
-        id={name}
-        type={type}
-        name={name}
-        value={form[name]}
-        onChange={handleChange}
-        className={`form-control ${errors[name] ? "is-invalid" : ""}`}
-        disabled={submitting}
-        {...extra}
-      />
-
-      {errors[name] && (
-        <div className="invalid-feedback">{errors[name]}</div>
-      )}
-    </div>
-  );
-
-  const passwordField = (
+  const renderField = (
     name,
     label,
-    isVisible,
-    setIsVisible
-  ) => (
-    <div className="mb-3">
-      <label className="form-label" htmlFor={name}>
-        {label}
-      </label>
+    type = "text",
+    options = {}
+  ) => {
+    const {
+      optional = false,
+      helperText = "",
+      ...inputProps
+    } = options;
 
-      <div className="position-relative">
+    return (
+      <div className="mb-3">
+        <label
+          className="form-label d-flex justify-content-between align-items-center gap-2 fw-semibold"
+          htmlFor={name}
+        >
+          <span>{label}</span>
+
+          {optional && (
+            <span className="badge rounded-pill bg-light border text-secondary fw-normal">
+              Optional
+            </span>
+          )}
+        </label>
+
         <input
           id={name}
-          type={isVisible ? "text" : "password"}
+          type={type}
           name={name}
           value={form[name]}
           onChange={handleChange}
-          className={`form-control pe-5 ${errors[name] ? "is-invalid" : ""
-            }`}
+          className={`form-control form-control-lg rounded-3 ${
+            errors[name] ? "is-invalid" : ""
+          }`}
           disabled={submitting}
-          autoComplete="new-password"
+          aria-invalid={Boolean(errors[name])}
+          {...inputProps}
         />
 
-        <button
-          type="button"
-          className="btn position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent me-1"
-          onClick={() => setIsVisible((previous) => !previous)}
-          disabled={submitting}
-          aria-label={isVisible ? "Hide password" : "Show password"}
-          aria-pressed={isVisible}
-          title={isVisible ? "Hide password" : "Show password"}
-        >
-          {isVisible ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
-      </div>
+        {errors[name] && (
+          <div className="invalid-feedback">
+            {errors[name]}
+          </div>
+        )}
 
-      {errors[name] && (
-        <div className="invalid-feedback d-block">
-          {errors[name]}
+        {helperText && !errors[name] && (
+          <div className="form-text">
+            {helperText}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderPasswordField = (
+    name,
+    label,
+    isVisible,
+    setIsVisible,
+    helperText = ""
+  ) => {
+    return (
+      <div className="mb-3">
+        <label
+          className="form-label fw-semibold"
+          htmlFor={name}
+        >
+          {label}
+        </label>
+
+        <div className="input-group input-group-lg">
+          <input
+            id={name}
+            type={isVisible ? "text" : "password"}
+            name={name}
+            value={form[name]}
+            onChange={handleChange}
+            className={`form-control rounded-start-3 ${
+              errors[name] ? "is-invalid" : ""
+            }`}
+            disabled={submitting}
+            autoComplete="new-password"
+            aria-invalid={Boolean(errors[name])}
+          />
+
+          <button
+            type="button"
+            className="btn btn-outline-secondary rounded-end-3"
+            onClick={() =>
+              setIsVisible(
+                (previousValue) => !previousValue
+              )
+            }
+            disabled={submitting}
+            aria-label={
+              isVisible
+                ? "Hide password"
+                : "Show password"
+            }
+            aria-pressed={isVisible}
+            title={
+              isVisible
+                ? "Hide password"
+                : "Show password"
+            }
+          >
+            {isVisible ? (
+              <EyeOff size={19} />
+            ) : (
+              <Eye size={19} />
+            )}
+          </button>
         </div>
-      )}
-    </div>
-  );
+
+        {errors[name] && (
+          <div className="invalid-feedback d-block">
+            {errors[name]}
+          </div>
+        )}
+
+        {helperText && !errors[name] && (
+          <div className="form-text">
+            {helperText}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (registrationSuccess) {
-    const { workshop, employee, user } = registrationSuccess;
+    const {
+      workshop,
+      employee,
+      user,
+    } = registrationSuccess;
 
     return (
-      <div
-        className="container d-flex align-items-center justify-content-center py-5"
-        style={{ minHeight: "calc(100vh - 80px)" }}
-      >
-        <section
-          className="service-ticket-card"
-          style={{ width: "100%", maxWidth: 900 }}
-        >
-          <div className="mb-4">
-            <span className="badge bg-warning text-dark mb-3">
-              Setup complete
-            </span>
+      <div className="container py-5">
+        <div className="row justify-content-center">
+          <div className="col-12 col-lg-8">
+            <section className="card border-0 shadow-sm rounded-4 overflow-hidden">
+              <div className="bg-dark text-white text-center p-4 p-md-5">
+                <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning text-dark p-3 mb-3">
+                  <CheckCircle2 size={30} />
+                </div>
 
-            <h2 className="h4 fw-bold mb-2">Your workshop is ready</h2>
+                <span className="d-block text-warning fw-semibold small text-uppercase mb-2">
+                  Setup complete
+                </span>
 
-            <p className="text-muted mb-0">
-              The workshop has been created and your administrator account is ready to use.
-            </p>
-          </div>
+                <h1 className="h3 fw-bold mb-2">
+                  Your workshop is ready
+                </h1>
 
-          <div className="row g-3 mb-4">
-            <div className="col-md-6">
-              <div className="border rounded-4 p-3 h-100 bg-light">
-                <small className="text-muted d-block mb-1">Workshop</small>
-
-                <h5 className="mb-1">{workshop?.company_name}</h5>
-
-                <p className="mb-0 text-muted">{workshop?.email}</p>
-              </div>
-            </div>
-
-            <div className="col-md-6">
-              <div className="border rounded-4 p-3 h-100 bg-light">
-                <small className="text-muted d-block mb-1">
-                  Administrator
-                </small>
-
-                <h5 className="mb-1">
-                  {employee?.first_name} {employee?.last_name}
-                </h5>
-
-                <p className="mb-0 text-muted">
-                  Login email: {user?.email}
+                <p className="text-white-50 mb-0">
+                  Your workshop and administrator
+                  account were created successfully.
                 </p>
               </div>
-            </div>
-          </div>
 
-          <div className="d-flex justify-content-end">
-            <button
-              className="btn btn-warning text-dark fw-bold px-4 py-2 rounded-4"
-              onClick={() => navigate("/dashboard")}
-            >
-              Go to dashboard
-            </button>
+              <div className="card-body p-4 p-md-5">
+                <div className="row g-3 mb-4">
+                  <div className="col-md-6">
+                    <div className="border rounded-4 p-4 h-100 bg-light">
+                      <div className="d-flex align-items-center gap-2 mb-3">
+                        <Building2
+                          size={20}
+                          className="text-warning"
+                        />
+
+                        <small className="text-uppercase text-muted fw-semibold">
+                          Workshop
+                        </small>
+                      </div>
+
+                      <h2 className="h5 fw-bold mb-1">
+                        {workshop?.company_name}
+                      </h2>
+
+                      <p className="text-muted mb-0">
+                        {workshop?.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <div className="border rounded-4 p-4 h-100 bg-light">
+                      <div className="d-flex align-items-center gap-2 mb-3">
+                        <UserRound
+                          size={20}
+                          className="text-warning"
+                        />
+
+                        <small className="text-uppercase text-muted fw-semibold">
+                          Administrator
+                        </small>
+                      </div>
+
+                      <h2 className="h5 fw-bold mb-1">
+                        {employee?.first_name}{" "}
+                        {employee?.last_name}
+                      </h2>
+
+                      <p className="text-muted mb-0">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="d-grid d-sm-flex justify-content-sm-end">
+                  <button
+                    type="button"
+                    className="btn btn-warning fw-bold px-4 py-2 rounded-3"
+                    onClick={() =>
+                      navigate("/dashboard")
+                    }
+                  >
+                    Go to dashboard
+                  </button>
+                </div>
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="container d-flex align-items-center justify-content-center py-5"
-      style={{ minHeight: "calc(100vh - 80px)" }}
-    >
-      <section
-        className="service-ticket-card"
-        style={{ width: "100%", maxWidth: 760 }}
-      >
-        <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
-          <div>
-            <h2 className="h4 fw-bold mb-2">Workshop Registration</h2>
+    <div className="container py-5">
+      <div className="row justify-content-center">
+        <div className="col-12 col-lg-9 col-xl-8">
+          <section className="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <header className="bg-dark text-white p-4 p-md-5">
+              <span className="badge rounded-pill bg-warning text-dark mb-3">
+                Workshop setup
+              </span>
 
-            <p className="text-muted mb-0">
-              {currentStep === 1
-                ? "Step 1 · Enter your workshop details."
-                : "Step 2 · Create the administrator account."}
-            </p>
-          </div>
-        </div>
+              <h1 className="h3 fw-bold mb-2">
+                Create your workshop
+              </h1>
 
-        <div className="service-ticket-steps">
-          <button
-            type="button"
-            className={`service-ticket-step ${currentStep === 1 ? "active" : ""
-              }`}
-            onClick={() => {
-              setServerMsg("");
-              setErrors({});
-              setCurrentStep(1);
-            }}
-            disabled={submitting}
-          >
-            Step 1
-          </button>
+              <p className="text-white-50 mb-0">
+                {currentStep === 1
+                  ? "Enter the public information for your workshop."
+                  : "Create the administrator who will manage the platform."}
+              </p>
+            </header>
 
-          <button
-            type="button"
-            className={`service-ticket-step ${currentStep === 2 ? "active" : ""
-              }`}
-            onClick={handleStepTwoClick}
-            disabled={submitting}
-          >
-            Step 2
-          </button>
-        </div>
-
-        {serverMsg && (
-          <div className="alert alert-danger rounded-4" role="alert">
-            {serverMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate>
-          {currentStep === 1 && (
-            <>
-              <h5 className="mt-3 mb-3">Workshop Details</h5>
-
-              {field("company_name", "Workshop Name")}
-
-              {field("cif", "CIF", "text", {
-                maxLength: 9,
-                placeholder: "B12345678",
-              })}
-
-              {field("phone", "Workshop Phone", "tel", {
-                placeholder: "+34600000000",
-              })}
-
-              {field("email", "Public Workshop Email", "email")}
-
-              {field("address", "Street Address")}
-
-              <div className="row">
-                <div className="col-md-4">
-                  {field("postal_code", "Postal Code", "text", {
-                    maxLength: 5,
-                    placeholder: "28001",
-                  })}
+            <div className="card-body p-4 p-md-5">
+              <div
+                className="row g-2 mb-4"
+                aria-label="Registration steps"
+              >
+                <div className="col-6">
+                  <button
+                    type="button"
+                    className={`btn w-100 d-flex align-items-center justify-content-center gap-2 fw-bold py-3 rounded-3 ${
+                      currentStep === 1
+                        ? "btn-warning"
+                        : "btn-outline-dark"
+                    }`}
+                    onClick={handlePreviousStep}
+                    disabled={submitting}
+                    aria-current={
+                      currentStep === 1
+                        ? "step"
+                        : undefined
+                    }
+                  >
+                    <Building2 size={19} />
+                    <span>Workshop</span>
+                  </button>
                 </div>
 
-                <div className="col-md-4">{field("city", "City")}</div>
-
-                <div className="col-md-4">
-                  {field("province", "Province")}
+                <div className="col-6">
+                  <button
+                    type="button"
+                    className={`btn w-100 d-flex align-items-center justify-content-center gap-2 fw-bold py-3 rounded-3 ${
+                      currentStep === 2
+                        ? "btn-warning"
+                        : "btn-outline-dark"
+                    }`}
+                    onClick={handleNextStep}
+                    disabled={submitting}
+                    aria-current={
+                      currentStep === 2
+                        ? "step"
+                        : undefined
+                    }
+                  >
+                    <UserRound size={19} />
+                    <span>Administrator</span>
+                  </button>
                 </div>
               </div>
 
-              {field("country", "Country")}
-
-              <div className="d-flex justify-content-end mt-4">
-                <button
-                  type="button"
-                  className="btn btn-warning text-dark fw-bold px-4 py-2 rounded-4"
-                  onClick={handleNextStep}
-                  disabled={submitting}
+              {serverMsg && (
+                <div
+                  className="alert alert-danger rounded-3"
+                  role="alert"
                 >
-                  Continue
-                </button>
-              </div>
-            </>
-          )}
-
-          {currentStep === 2 && (
-            <>
-              <h5 className="mt-3 mb-3">Administrator Details</h5>
-
-              <div className="row">
-                <div className="col-md-6">
-                  {field("manager_first_name", "First Name")}
+                  {serverMsg}
                 </div>
-
-                <div className="col-md-6">
-                  {field("manager_last_name", "Last Name")}
-                </div>
-              </div>
-
-              {field("manager_dni", "DNI", "text", {
-                maxLength: 9,
-                placeholder: "12345678A",
-              })}
-
-              {field("manager_phone", "Administrator Phone", "tel", {
-                placeholder: "+34600000000",
-              })}
-
-              {field("manager_email", "Login Email", "email")}
-
-              {passwordField(
-                "manager_password",
-                "Password",
-                showPassword,
-                setShowPassword
               )}
 
-              {passwordField(
-                "manager_password_confirm",
-                "Confirm Password",
-                showPasswordConfirm,
-                setShowPasswordConfirm
-              )}
+              <form
+                onSubmit={handleSubmit}
+                noValidate
+              >
+                {currentStep === 1 && (
+                  <>
+                    <div className="mb-4">
+                      <h2 className="h5 fw-bold mb-1">
+                        Workshop details
+                      </h2>
 
-              <div className="d-flex justify-content-between align-items-center gap-3 mt-4">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary fw-bold px-4 py-2 rounded-4"
-                  onClick={handlePreviousStep}
-                  disabled={submitting}
-                >
-                  Back
-                </button>
+                      <p className="text-muted small mb-0">
+                        This information identifies your
+                        workshop inside the platform.
+                      </p>
+                    </div>
 
-                <button
-                  type="submit"
-                  className="btn btn-warning text-dark fw-bold px-4 py-2 rounded-4"
-                  disabled={submitting}
-                >
-                  {submitting ? "Creating..." : "Create Workshop"}
-                </button>
-              </div>
-            </>
-          )}
-        </form>
-      </section>
+                    {renderField(
+                      "company_name",
+                      "Workshop name",
+                      "text",
+                      {
+                        placeholder:
+                          "Example Motor Workshop",
+                        autoComplete: "organization",
+                      }
+                    )}
+
+                    <div className="row">
+                      <div className="col-md-6">
+                        {renderField(
+                          "cif",
+                          "CIF",
+                          "text",
+                          {
+                            optional: true,
+                            maxLength: 9,
+                            placeholder: "B12345678",
+                            autoCapitalize:
+                              "characters",
+                            helperText:
+                              "Leave it empty when the workshop does not have a CIF.",
+                          }
+                        )}
+                      </div>
+
+                      <div className="col-md-6">
+                        {renderField(
+                          "phone",
+                          "Workshop phone",
+                          "tel",
+                          {
+                            optional: true,
+                            placeholder:
+                              "+34600000000",
+                            autoComplete: "tel",
+                            helperText:
+                              "The administrator phone will be used when omitted.",
+                          }
+                        )}
+                      </div>
+                    </div>
+
+                    {renderField(
+                      "email",
+                      "Public workshop email",
+                      "email",
+                      {
+                        optional: true,
+                        placeholder:
+                          "workshop@example.com",
+                        autoComplete: "email",
+                        helperText:
+                          "The administrator email will be used when omitted.",
+                      }
+                    )}
+
+                    {renderField(
+                      "address",
+                      "Street address",
+                      "text",
+                      {
+                        placeholder:
+                          "Calle Example 25",
+                        autoComplete:
+                          "street-address",
+                      }
+                    )}
+
+                    <div className="row">
+                      <div className="col-md-4">
+                        {renderField(
+                          "postal_code",
+                          "Postal code",
+                          "text",
+                          {
+                            maxLength: 5,
+                            placeholder: "28001",
+                            inputMode: "numeric",
+                            autoComplete:
+                              "postal-code",
+                          }
+                        )}
+                      </div>
+
+                      <div className="col-md-4">
+                        {renderField(
+                          "city",
+                          "City",
+                          "text",
+                          {
+                            autoComplete:
+                              "address-level2",
+                          }
+                        )}
+                      </div>
+
+                      <div className="col-md-4">
+                        {renderField(
+                          "province",
+                          "Province",
+                          "text",
+                          {
+                            autoComplete:
+                              "address-level1",
+                          }
+                        )}
+                      </div>
+                    </div>
+
+                    {renderField(
+                      "country",
+                      "Country",
+                      "text",
+                      {
+                        autoComplete:
+                          "country-name",
+                      }
+                    )}
+
+                    <div className="d-grid d-sm-flex justify-content-sm-end mt-4">
+                      <button
+                        type="button"
+                        className="btn btn-warning fw-bold px-4 py-2 rounded-3"
+                        onClick={handleNextStep}
+                        disabled={submitting}
+                      >
+                        Continue
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {currentStep === 2 && (
+                  <>
+                    <div className="mb-4">
+                      <h2 className="h5 fw-bold mb-1">
+                        Administrator details
+                      </h2>
+
+                      <p className="text-muted small mb-0">
+                        These credentials will be used to
+                        access and manage the workshop.
+                      </p>
+                    </div>
+
+                    <div className="row">
+                      <div className="col-md-6">
+                        {renderField(
+                          "manager_first_name",
+                          "First name",
+                          "text",
+                          {
+                            autoComplete:
+                              "given-name",
+                          }
+                        )}
+                      </div>
+
+                      <div className="col-md-6">
+                        {renderField(
+                          "manager_last_name",
+                          "Last name",
+                          "text",
+                          {
+                            autoComplete:
+                              "family-name",
+                          }
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="row">
+                      <div className="col-md-6">
+                        {renderField(
+                          "manager_dni",
+                          "DNI",
+                          "text",
+                          {
+                            maxLength: 9,
+                            placeholder:
+                              "12345678A",
+                            autoCapitalize:
+                              "characters",
+                          }
+                        )}
+                      </div>
+
+                      <div className="col-md-6">
+                        {renderField(
+                          "manager_phone",
+                          "Administrator phone",
+                          "tel",
+                          {
+                            placeholder:
+                              "+34600000000",
+                            autoComplete: "tel",
+                          }
+                        )}
+                      </div>
+                    </div>
+
+                    {renderField(
+                      "manager_email",
+                      "Login email",
+                      "email",
+                      {
+                        placeholder:
+                          "admin@example.com",
+                        autoComplete: "email",
+                      }
+                    )}
+
+                    {renderPasswordField(
+                      "manager_password",
+                      "Password",
+                      showPassword,
+                      setShowPassword,
+                      "Use at least 8 characters."
+                    )}
+
+                    {renderPasswordField(
+                      "manager_password_confirm",
+                      "Confirm password",
+                      showPasswordConfirm,
+                      setShowPasswordConfirm
+                    )}
+
+                    <div className="d-flex flex-column flex-sm-row justify-content-between gap-2 mt-4">
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary fw-bold px-4 py-2 rounded-3"
+                        onClick={handlePreviousStep}
+                        disabled={submitting}
+                      >
+                        Back
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="btn btn-warning fw-bold px-4 py-2 rounded-3"
+                        disabled={submitting}
+                      >
+                        {submitting && (
+                          <span
+                            className="spinner-border spinner-border-sm me-2"
+                            role="status"
+                            aria-hidden="true"
+                          />
+                        )}
+
+                        {submitting
+                          ? "Creating workshop..."
+                          : "Create workshop"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </form>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   );
 };
