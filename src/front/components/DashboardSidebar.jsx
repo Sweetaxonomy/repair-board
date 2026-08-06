@@ -1,27 +1,24 @@
-import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import {Home, LogOut, ClipboardPlus, Users, Car, Wrench } from "lucide-react";
+import {
+  NavLink,
+  useNavigate,
+} from "react-router-dom";
 
-const getStoredItem = (key) => {
-  const storedValue = localStorage.getItem(key);
+import {
+  Home,
+  LogOut,
+  ClipboardPlus,
+  Users,
+  Car,
+  Wrench,
+} from "lucide-react";
 
-  if (!storedValue) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(storedValue);
-  } catch {
-    localStorage.removeItem(key);
-    return null;
-  }
-};
-
-export const DashboardSidebar = ({ role, user, employee, onLogout }) => {
-  const workshop = getStoredItem("workshop");
-  const storedEmployee = getStoredItem("employee");
-  const currentEmployee = employee || storedEmployee;
-
+export const DashboardSidebar = ({
+  role,
+  user,
+  employee,
+  workshop,
+  onLogout,
+}) => {
   const navigate = useNavigate();
 
   const today = new Intl.DateTimeFormat("en-GB", {
@@ -31,15 +28,21 @@ export const DashboardSidebar = ({ role, user, employee, onLogout }) => {
   }).format(new Date());
 
   const displayName =
-    currentEmployee?.first_name && currentEmployee?.last_name
-      ? `${currentEmployee.first_name} ${currentEmployee.last_name}`
-      : currentEmployee?.first_name ||
-        user?.employee?.first_name ||
+    employee?.first_name && employee?.last_name
+      ? `${employee.first_name} ${employee.last_name}`
+      : employee?.first_name ||
         user?.email ||
         "User";
 
-  const roleLabel = role === "admin" ? "admin" : "mechanic";
-  const homePath = role === "admin" ? "/admin" : "/mechanic";
+  const isAdmin = role === "admin";
+
+  const roleLabel = isAdmin
+    ? "admin"
+    : "mechanic";
+
+  const homePath = isAdmin
+    ? "/admin"
+    : "/mechanic";
 
   const getNavClass = ({ isActive }) =>
     `dashboard-sidebar-link ${isActive ? "active" : ""}`;
@@ -60,20 +63,27 @@ export const DashboardSidebar = ({ role, user, employee, onLogout }) => {
             <span className="dashboard-welcome">
               Welcome Back {roleLabel},
             </span>
-            <span className="dashboard-user-name">{displayName}</span>
+
+            <span className="dashboard-user-name">
+              {displayName}
+            </span>
           </button>
 
           <p className="dashboard-role">
-            {role === "admin" ? "Admin dashboard" : "Mechanic dashboard"}
+            {isAdmin
+              ? "Admin dashboard"
+              : "Mechanic dashboard"}
           </p>
         </div>
 
-        {role === "admin" && (
+        {isAdmin && (
           <>
             <button
               type="button"
               className="dashboard-new-task"
-              onClick={() => navigate("/admin/services/new")}
+              onClick={() =>
+                navigate("/admin/services/new")
+              }
             >
               <ClipboardPlus size={18} />
               <span>New Task</span>
@@ -89,17 +99,26 @@ export const DashboardSidebar = ({ role, user, employee, onLogout }) => {
             </button>
 
             <nav className="dashboard-nav">
-              <NavLink to="/admin/mechanics" className={getNavClass}>
+              <NavLink
+                to="/admin/mechanics"
+                className={getNavClass}
+              >
                 <Wrench size={18} />
                 <span>Mechanics</span>
               </NavLink>
 
-              <NavLink to="/admin/vehicles" className={getNavClass}>
+              <NavLink
+                to="/admin/vehicles"
+                className={getNavClass}
+              >
                 <Car size={18} />
                 <span>Vehicles</span>
               </NavLink>
 
-              <NavLink to="/admin/customers" className={getNavClass}>
+              <NavLink
+                to="/admin/customers"
+                className={getNavClass}
+              >
                 <Users size={18} />
                 <span>Customers</span>
               </NavLink>
@@ -107,9 +126,12 @@ export const DashboardSidebar = ({ role, user, employee, onLogout }) => {
           </>
         )}
 
-        {role === "mechanic" && (
+        {!isAdmin && (
           <nav className="dashboard-nav">
-            <NavLink to="/mechanic" className={getNavClass}>
+            <NavLink
+              to="/mechanic"
+              className={getNavClass}
+            >
               <Wrench size={18} />
               <span>My Tasks</span>
             </NavLink>
