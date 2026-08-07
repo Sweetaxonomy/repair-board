@@ -2,62 +2,130 @@
 
 const DEFAULT_BACKEND_URL = "http://127.0.0.1:3001";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL || DEFAULT_BACKEND_URL;
+const backendUrl =
+  import.meta.env.VITE_BACKEND_URL ||
+  DEFAULT_BACKEND_URL;
 
-const cleanBackendUrl = backendUrl.replace(/\/$/, "");
+const cleanBackendUrl =
+  backendUrl.replace(/\/$/, "");
 
-const API_BASE_URL = cleanBackendUrl.endsWith("/api") ? cleanBackendUrl : `${cleanBackendUrl}/api`;
+const API_BASE_URL =
+  cleanBackendUrl.endsWith("/api")
+    ? cleanBackendUrl
+    : `${cleanBackendUrl}/api`;
+
 
 // 2. FUNCTION TO READ PUBLIC RESPONSES
 
 async function parseResponse(response) {
-  const data = await response.json().catch(() => ({}));
+  const data =
+    await response.json().catch(() => ({}));
 
   return {
-
     ok: response.ok,
     status: response.status,
     data: data,
-
   };
 }
+
 
 // 3. WORKSHOP REGISTRATION
 
 export async function registerWorkshop(payload) {
-  const response = await fetch(`${API_BASE_URL}/register`, {
-    method: "POST",
+  const response = await fetch(
+    `${API_BASE_URL}/register`,
+    {
+      method: "POST",
 
-    headers: {
-      "Content-Type": "application/json",
-    },
+      headers: {
+        "Content-Type": "application/json",
+      },
 
-    body: JSON.stringify(payload),
-  });
+      body: JSON.stringify(payload),
+    }
+  );
 
   return await parseResponse(response);
 }
+
 
 // 4. USER LOGIN
 
-export async function loginUser(email, password) {
-  const response = await fetch(`${API_BASE_URL}/login`, {
-    method: "POST",
+export async function loginUser(
+  email,
+  password
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/login`,
+    {
+      method: "POST",
 
-    headers: {
-      "Content-Type": "application/json",
-    },
+      headers: {
+        "Content-Type": "application/json",
+      },
 
-    body: JSON.stringify({
-      email: email,
-      password: password,
-    }),
-  });
+      body: JSON.stringify({
+        email: email,
+        password: password,
+      }),
+    }
+  );
 
   return await parseResponse(response);
 }
 
-// 5. REQUESTS TO PROTECTED ENDPOINTS
+
+// 5. FORGOT PASSWORD
+
+export async function forgotPassword(email) {
+  const response = await fetch(
+    `${API_BASE_URL}/forgot-password`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        email: email,
+      }),
+    }
+  );
+
+  return await parseResponse(response);
+}
+
+
+// 6. RESET PASSWORD
+
+export async function resetPassword(
+  token,
+  password,
+  passwordConfirm
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/reset-password`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        token: token,
+        password: password,
+        password_confirm: passwordConfirm,
+      }),
+    }
+  );
+
+  return await parseResponse(response);
+}
+
+
+// 7. REQUESTS TO PROTECTED ENDPOINTS
 
 export async function apiFetch(
   path,
@@ -66,26 +134,32 @@ export async function apiFetch(
     body,
   } = {}
 ) {
-  const token = localStorage.getItem("token");
+  const token =
+    localStorage.getItem("token");
 
   const headers = {
     "Content-Type": "application/json",
   };
 
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers.Authorization =
+      `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: method,
-    headers: headers,
-    body:
-      body !== undefined
-        ? JSON.stringify(body)
-        : undefined,
-  });
+  const response = await fetch(
+    `${API_BASE_URL}${path}`,
+    {
+      method: method,
+      headers: headers,
+      body:
+        body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
+    }
+  );
 
-  const data = await response.json().catch(() => ({}));
+  const data =
+    await response.json().catch(() => ({}));
 
   if (!response.ok) {
     const errorMessage =
@@ -99,14 +173,19 @@ export async function apiFetch(
   return data;
 }
 
-// 6. SERVICE STATUS HISTORY
 
-export async function getServiceStatusLogs(serviceId) {
+// 8. SERVICE STATUS HISTORY
+
+export async function getServiceStatusLogs(
+  serviceId
+) {
   return await apiFetch(
     `/services/${serviceId}/status-logs`
   );
 }
-// 7. UPDATE A SERVICE COMMENT
+
+
+// 9. UPDATE A SERVICE COMMENT
 
 export async function updateServiceComment(
   serviceId,
@@ -122,7 +201,8 @@ export async function updateServiceComment(
   );
 }
 
-// 8. DELETE A SERVICE COMMENT
+
+// 10. DELETE A SERVICE COMMENT
 
 export async function deleteServiceComment(
   serviceId,
@@ -136,7 +216,8 @@ export async function deleteServiceComment(
   );
 }
 
-// 9. CANCEL A SERVICE
+
+// 11. CANCEL A SERVICE
 
 export async function cancelService(
   serviceId,
@@ -146,6 +227,7 @@ export async function cancelService(
     `/services/${serviceId}/cancel`,
     {
       method: "PATCH",
+
       body: {
         reason: reason,
       },
@@ -153,13 +235,17 @@ export async function cancelService(
   );
 }
 
-// 10. PERMANENTLY DELETE A SERVICE
 
-export async function permanentlyDeleteService(serviceId) {
+// 12. PERMANENTLY DELETE A SERVICE
+
+export async function permanentlyDeleteService(
+  serviceId
+) {
   return await apiFetch(
     `/services/${serviceId}`,
     {
       method: "DELETE",
+
       body: {
         confirm: true,
       },
