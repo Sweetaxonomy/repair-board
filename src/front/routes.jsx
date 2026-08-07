@@ -3,7 +3,7 @@ import {
   createRoutesFromElements,
   Route,
 } from "react-router-dom";
-
+import { ResetPassword } from "./pages/ResetPassword";
 import { AppLayout } from "./layouts/AppLayout";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 
@@ -56,6 +56,11 @@ const Routes = createRoutesFromElements(
     <Route
       path="forgot-password"
       element={<ForgotPassword />}
+    />
+
+    <Route
+      path="reset-password"
+      element={<ResetPassword />}
     />
 
     {/* Redirect according to logged-in role */}
