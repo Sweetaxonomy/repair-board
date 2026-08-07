@@ -1,7 +1,6 @@
 import {
   Navigate,
   Outlet,
-  useNavigate,
 } from "react-router-dom";
 
 import { DashboardSidebar } from "../components/DashboardSidebar";
@@ -27,8 +26,6 @@ const getStoredObject = (key) => {
 };
 
 export const DashboardLayout = ({ allowedRole }) => {
-  const navigate = useNavigate();
-
   const token = localStorage.getItem("token");
   const user = getStoredObject("user");
   const employee = getStoredObject("employee");
@@ -56,27 +53,16 @@ export const DashboardLayout = ({ allowedRole }) => {
     );
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("employee");
-    localStorage.removeItem("workshop");
-
-    navigate("/login", { replace: true });
-  };
-
   return (
-    <div className="dashboard-shell">
+    <div className="dashboard-shell d-flex flex-column flex-md-row flex-grow-1">
       <DashboardSidebar
         role={role}
         user={user}
         employee={employee}
         workshop={workshop}
-        onLogout={handleLogout}
-        
       />
 
-      <main className="dashboard-main">
+      <main className="dashboard-main flex-grow-1 p-3 p-lg-4">
         <Outlet />
       </main>
     </div>

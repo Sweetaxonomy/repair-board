@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   Building2,
   CheckCircle2,
+  Cog,
   Eye,
   EyeOff,
   UserRound,
@@ -50,8 +52,11 @@ export const Register = () => {
     useState(null);
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] =
-    useState(false);
+
+  const [
+    showPasswordConfirm,
+    setShowPasswordConfirm,
+  ] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -78,62 +83,75 @@ export const Register = () => {
     const workshopEmail = form.email.trim();
 
     if (!companyName) {
-      nextErrors.company_name = "Workshop name is required";
+      nextErrors.company_name =
+        "Workshop name is required";
     }
 
     /*
      * CIF is optional.
-     * We only validate its format when the user writes something.
+     * It is validated only when the user enters one.
      */
     if (cif && !patterns.cif.test(cif)) {
-      nextErrors.cif = "Invalid CIF. Example: B12345678";
+      nextErrors.cif =
+        "Invalid CIF. Example: B12345678";
     }
 
     /*
      * Workshop phone is optional.
-     * When omitted, the backend uses the administrator phone.
+     * The backend uses the administrator phone
+     * when this field is empty.
      */
     if (
       workshopPhone &&
       !patterns.phone.test(workshopPhone)
     ) {
-      nextErrors.phone = "Invalid phone number";
+      nextErrors.phone =
+        "Invalid phone number";
     }
 
     /*
-     * Public workshop email is optional.
-     * When omitted, the backend uses the administrator email.
+     * Workshop email is optional.
+     * The backend uses the administrator email
+     * when this field is empty.
      */
     if (
       workshopEmail &&
       !patterns.email.test(workshopEmail)
     ) {
-      nextErrors.email = "Invalid email";
+      nextErrors.email =
+        "Invalid email";
     }
 
     if (!form.address.trim()) {
-      nextErrors.address = "Address is required";
+      nextErrors.address =
+        "Address is required";
     }
 
     if (!form.postal_code.trim()) {
-      nextErrors.postal_code = "Postal code is required";
+      nextErrors.postal_code =
+        "Postal code is required";
     } else if (
-      !patterns.postal_code.test(form.postal_code.trim())
+      !patterns.postal_code.test(
+        form.postal_code.trim()
+      )
     ) {
       nextErrors.postal_code =
         "Postal code must have 5 digits";
     }
 
     if (!form.city.trim()) {
-      nextErrors.city = "City is required";
+      nextErrors.city =
+        "City is required";
     }
 
     if (!form.province.trim()) {
-      nextErrors.province = "Province is required";
+      nextErrors.province =
+        "Province is required";
     }
 
     if (!form.country.trim()) {
-      nextErrors.country = "Country is required";
+      nextErrors.country =
+        "Country is required";
     }
 
     setErrors(nextErrors);
@@ -144,9 +162,14 @@ export const Register = () => {
   const validateAdminStep = () => {
     const nextErrors = {};
 
-    const dni = form.manager_dni.trim().toUpperCase();
-    const phone = form.manager_phone.trim();
-    const email = form.manager_email.trim();
+    const dni =
+      form.manager_dni.trim().toUpperCase();
+
+    const phone =
+      form.manager_phone.trim();
+
+    const email =
+      form.manager_email.trim();
 
     if (!form.manager_first_name.trim()) {
       nextErrors.manager_first_name =
@@ -169,7 +192,8 @@ export const Register = () => {
     }
 
     if (!patterns.email.test(email)) {
-      nextErrors.manager_email = "Invalid email";
+      nextErrors.manager_email =
+        "Invalid email";
     }
 
     if (form.manager_password.length < 8) {
@@ -191,14 +215,16 @@ export const Register = () => {
   };
 
   const validateAll = () => {
-    const workshopIsValid = validateWorkshopStep();
+    const workshopIsValid =
+      validateWorkshopStep();
 
     if (!workshopIsValid) {
       setCurrentStep(1);
       return false;
     }
 
-    const adminIsValid = validateAdminStep();
+    const adminIsValid =
+      validateAdminStep();
 
     if (!adminIsValid) {
       setCurrentStep(2);
@@ -216,24 +242,30 @@ export const Register = () => {
       form.country.trim(),
     ];
 
-    return addressParts.filter(Boolean).join(", ");
-  };
-
-  const handlePreviousStep = () => {
-    setServerMsg("");
-    setErrors({});
-    setCurrentStep(1);
+    return addressParts
+      .filter(Boolean)
+      .join(", ");
   };
 
   const handleNextStep = () => {
     setServerMsg("");
 
+    /*
+     * Administrator cannot be reached until
+     * the workshop information is valid.
+     */
     if (!validateWorkshopStep()) {
       return;
     }
 
     setErrors({});
     setCurrentStep(2);
+  };
+
+  const handlePreviousStep = () => {
+    setServerMsg("");
+    setErrors({});
+    setCurrentStep(1);
   };
 
   const handleSubmit = async (event) => {
@@ -248,28 +280,53 @@ export const Register = () => {
 
     try {
       const payload = {
-        company_name: form.company_name.trim(),
-        cif: form.cif.trim().toUpperCase(),
+        company_name:
+          form.company_name.trim(),
 
-        workshop_phone: form.phone.trim(),
-        workshop_email: form.email.trim(),
+        cif:
+          form.cif.trim().toUpperCase(),
 
-        address: buildFullAddress(),
-        city: form.city.trim(),
-        postal_code: form.postal_code.trim(),
+        workshop_phone:
+          form.phone.trim(),
 
-        first_name: form.manager_first_name.trim(),
-        last_name: form.manager_last_name.trim(),
-        dni: form.manager_dni.trim().toUpperCase(),
-        employee_phone: form.manager_phone.trim(),
+        workshop_email:
+          form.email.trim(),
 
-        user_email: form.manager_email.trim(),
-        password: form.manager_password,
+        address:
+          buildFullAddress(),
+
+        city:
+          form.city.trim(),
+
+        postal_code:
+          form.postal_code.trim(),
+
+        first_name:
+          form.manager_first_name.trim(),
+
+        last_name:
+          form.manager_last_name.trim(),
+
+        dni:
+          form.manager_dni
+            .trim()
+            .toUpperCase(),
+
+        employee_phone:
+          form.manager_phone.trim(),
+
+        user_email:
+          form.manager_email.trim(),
+
+        password:
+          form.manager_password,
+
         password_confirm:
           form.manager_password_confirm,
       };
 
-      const response = await registerWorkshop(payload);
+      const response =
+        await registerWorkshop(payload);
 
       if (!response.ok) {
         setServerMsg(
@@ -307,7 +364,10 @@ export const Register = () => {
         employee: response.data.employee,
       });
     } catch (error) {
-      console.error("Register error:", error);
+      console.error(
+        "Register error:",
+        error
+      );
 
       setServerMsg(
         "Network error. Please try again."
@@ -338,9 +398,9 @@ export const Register = () => {
           <span>{label}</span>
 
           {optional && (
-            <span className="badge rounded-pill bg-light border text-secondary fw-normal">
+            <small className="text-secondary fw-normal">
               Optional
-            </span>
+            </small>
           )}
         </label>
 
@@ -351,7 +411,9 @@ export const Register = () => {
           value={form[name]}
           onChange={handleChange}
           className={`form-control form-control-lg rounded-3 ${
-            errors[name] ? "is-invalid" : ""
+            errors[name]
+              ? "is-invalid"
+              : ""
           }`}
           disabled={submitting}
           aria-invalid={Boolean(errors[name])}
@@ -392,12 +454,18 @@ export const Register = () => {
         <div className="input-group input-group-lg">
           <input
             id={name}
-            type={isVisible ? "text" : "password"}
+            type={
+              isVisible
+                ? "text"
+                : "password"
+            }
             name={name}
             value={form[name]}
             onChange={handleChange}
-            className={`form-control rounded-start-3 ${
-              errors[name] ? "is-invalid" : ""
+            className={`form-control ${
+              errors[name]
+                ? "is-invalid"
+                : ""
             }`}
             disabled={submitting}
             autoComplete="new-password"
@@ -406,10 +474,11 @@ export const Register = () => {
 
           <button
             type="button"
-            className="btn btn-outline-secondary rounded-end-3"
+            className="btn btn-outline-secondary"
             onClick={() =>
               setIsVisible(
-                (previousValue) => !previousValue
+                (previousValue) =>
+                  !previousValue
               )
             }
             disabled={submitting}
@@ -419,11 +488,6 @@ export const Register = () => {
                 : "Show password"
             }
             aria-pressed={isVisible}
-            title={
-              isVisible
-                ? "Hide password"
-                : "Show password"
-            }
           >
             {isVisible ? (
               <EyeOff size={19} />
@@ -448,6 +512,9 @@ export const Register = () => {
     );
   };
 
+  /*
+   * REGISTRATION SUCCESS
+   */
   if (registrationSuccess) {
     const {
       workshop,
@@ -456,40 +523,37 @@ export const Register = () => {
     } = registrationSuccess;
 
     return (
-      <div className="container py-5">
+      <div className="container py-5 flex-grow-1">
         <div className="row justify-content-center">
           <div className="col-12 col-lg-8">
             <section className="card border-0 shadow-sm rounded-4 overflow-hidden">
-              <div className="bg-dark text-white text-center p-4 p-md-5">
-                <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning text-dark p-3 mb-3">
-                  <CheckCircle2 size={30} />
-                </div>
+              <header className="bg-dark text-white border-bottom border-warning border-4 p-4 p-md-5">
+                <CheckCircle2
+                  size={36}
+                  className="text-warning mb-3"
+                />
 
-                <span className="d-block text-warning fw-semibold small text-uppercase mb-2">
-                  Setup complete
-                </span>
-
-                <h1 className="h3 fw-bold mb-2">
+                <h1 className="h2 fw-bold mb-3">
                   Your workshop is ready
                 </h1>
 
-                <p className="text-white-50 mb-0">
+                <p className="fs-5 text-white-50 mb-0">
                   Your workshop and administrator
                   account were created successfully.
                 </p>
-              </div>
+              </header>
 
               <div className="card-body p-4 p-md-5">
                 <div className="row g-3 mb-4">
                   <div className="col-md-6">
-                    <div className="border rounded-4 p-4 h-100 bg-light">
+                    <div className="border rounded-4 p-4 h-100 bg-body-tertiary">
                       <div className="d-flex align-items-center gap-2 mb-3">
                         <Building2
                           size={20}
                           className="text-warning"
                         />
 
-                        <small className="text-uppercase text-muted fw-semibold">
+                        <small className="text-uppercase text-secondary fw-semibold">
                           Workshop
                         </small>
                       </div>
@@ -498,21 +562,21 @@ export const Register = () => {
                         {workshop?.company_name}
                       </h2>
 
-                      <p className="text-muted mb-0">
+                      <p className="text-secondary mb-0">
                         {workshop?.email}
                       </p>
                     </div>
                   </div>
 
                   <div className="col-md-6">
-                    <div className="border rounded-4 p-4 h-100 bg-light">
+                    <div className="border rounded-4 p-4 h-100 bg-body-tertiary">
                       <div className="d-flex align-items-center gap-2 mb-3">
                         <UserRound
                           size={20}
                           className="text-warning"
                         />
 
-                        <small className="text-uppercase text-muted fw-semibold">
+                        <small className="text-uppercase text-secondary fw-semibold">
                           Administrator
                         </small>
                       </div>
@@ -522,7 +586,7 @@ export const Register = () => {
                         {employee?.last_name}
                       </h2>
 
-                      <p className="text-muted mb-0">
+                      <p className="text-secondary mb-0">
                         {user?.email}
                       </p>
                     </div>
@@ -548,74 +612,125 @@ export const Register = () => {
     );
   }
 
+  /*
+   * REGISTRATION FORM
+   */
   return (
-    <div className="container py-5">
+    <div className="container py-5 flex-grow-1">
       <div className="row justify-content-center">
         <div className="col-12 col-lg-9 col-xl-8">
           <section className="card border-0 shadow-sm rounded-4 overflow-hidden">
-            <header className="bg-dark text-white p-4 p-md-5">
-              <span className="badge rounded-pill bg-warning text-dark mb-3">
-                Workshop setup
-              </span>
 
-              <h1 className="h3 fw-bold mb-2">
-                Create your workshop
-              </h1>
+            {/* HERO */}
 
-              <p className="text-white-50 mb-0">
-                {currentStep === 1
-                  ? "Enter the public information for your workshop."
-                  : "Create the administrator who will manage the platform."}
-              </p>
+            <header className="register-hero position-relative overflow-hidden bg-dark text-white border-bottom border-warning border-4 p-4 p-md-5">
+              <div className="register-hero-content">
+                <h1 className="h2 fw-bold mb-3">
+                  Create your workshop
+                </h1>
+
+                <p className="fs-5 text-white-50 lh-base mb-0">
+                  Add your workshop information and create
+                  the administrator account that will
+                  manage it.
+                </p>
+              </div>
+
+              <Cog
+                className="register-gear register-gear-large text-warning"
+                aria-hidden="true"
+              />
+
+              <Cog
+                className="register-gear register-gear-small text-warning"
+                aria-hidden="true"
+              />
             </header>
 
             <div className="card-body p-4 p-md-5">
-              <div
-                className="row g-2 mb-4"
-                aria-label="Registration steps"
-              >
-                <div className="col-6">
-                  <button
-                    type="button"
-                    className={`btn w-100 d-flex align-items-center justify-content-center gap-2 fw-bold py-3 rounded-3 ${
-                      currentStep === 1
-                        ? "btn-warning"
-                        : "btn-outline-dark"
-                    }`}
-                    onClick={handlePreviousStep}
-                    disabled={submitting}
-                    aria-current={
-                      currentStep === 1
-                        ? "step"
-                        : undefined
-                    }
-                  >
-                    <Building2 size={19} />
-                    <span>Workshop</span>
-                  </button>
+
+              {/* STEPS */}
+
+              <div className="mb-5">
+                <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
+
+                  {/* STEP 1 */}
+
+                  <div className="d-flex align-items-center gap-3">
+                    <span className="register-step-number d-inline-flex align-items-center justify-content-center rounded-circle bg-warning text-dark fw-bold flex-shrink-0">
+                      1
+                    </span>
+
+                    <div>
+                      <p className="fw-bold mb-0">
+                        Workshop details
+                      </p>
+
+                      <small className="text-secondary">
+                        {currentStep === 2
+                          ? "Completed"
+                          : "Step 1"}
+                      </small>
+                    </div>
+                  </div>
+
+                  {/* STEP 2 */}
+
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="text-end">
+                      <p
+                        className={`fw-bold mb-0 ${
+                          currentStep === 2
+                            ? "text-dark"
+                            : "text-secondary"
+                        }`}
+                      >
+                        Administrator
+                      </p>
+
+                      <small className="text-secondary">
+                        Step 2
+                      </small>
+                    </div>
+
+                    <span
+                      className={`register-step-number d-inline-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0 ${
+                        currentStep === 2
+                          ? "bg-warning text-dark"
+                          : "bg-body-secondary text-secondary border"
+                      }`}
+                    >
+                      2
+                    </span>
+                  </div>
                 </div>
 
-                <div className="col-6">
-                  <button
-                    type="button"
-                    className={`btn w-100 d-flex align-items-center justify-content-center gap-2 fw-bold py-3 rounded-3 ${
-                      currentStep === 2
-                        ? "btn-warning"
-                        : "btn-outline-dark"
-                    }`}
-                    onClick={handleNextStep}
-                    disabled={submitting}
-                    aria-current={
-                      currentStep === 2
-                        ? "step"
-                        : undefined
-                    }
-                  >
-                    <UserRound size={19} />
-                    <span>Administrator</span>
-                  </button>
+                <div
+                  className="progress rounded-pill"
+                  style={{ height: "6px" }}
+                  role="progressbar"
+                  aria-label="Registration progress"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow={
+                    currentStep === 1
+                      ? 50
+                      : 100
+                  }
+                >
+                  <div
+                    className="progress-bar bg-warning"
+                    style={{
+                      width:
+                        currentStep === 1
+                          ? "50%"
+                          : "100%",
+                    }}
+                  />
                 </div>
               </div>
+
+              {/* SERVER ERROR */}
 
               {serverMsg && (
                 <div
@@ -630,16 +745,19 @@ export const Register = () => {
                 onSubmit={handleSubmit}
                 noValidate
               >
+
+                {/* STEP 1 */}
+
                 {currentStep === 1 && (
                   <>
                     <div className="mb-4">
-                      <h2 className="h5 fw-bold mb-1">
-                        Workshop details
+                      <h2 className="h5 fw-bold mb-2">
+                        Business information
                       </h2>
 
-                      <p className="text-muted small mb-0">
-                        This information identifies your
-                        workshop inside the platform.
+                      <p className="text-secondary mb-0">
+                        Enter the contact and location
+                        details for your workshop.
                       </p>
                     </div>
 
@@ -650,11 +768,12 @@ export const Register = () => {
                       {
                         placeholder:
                           "Example Motor Workshop",
-                        autoComplete: "organization",
+                        autoComplete:
+                          "organization",
                       }
                     )}
 
-                    <div className="row">
+                    <div className="row g-3">
                       <div className="col-md-6">
                         {renderField(
                           "cif",
@@ -663,11 +782,8 @@ export const Register = () => {
                           {
                             optional: true,
                             maxLength: 9,
-                            placeholder: "B12345678",
-                            autoCapitalize:
-                              "characters",
-                            helperText:
-                              "Leave it empty when the workshop does not have a CIF.",
+                            placeholder:
+                              "B12345678",
                           }
                         )}
                       </div>
@@ -683,7 +799,7 @@ export const Register = () => {
                               "+34600000000",
                             autoComplete: "tel",
                             helperText:
-                              "The administrator phone will be used when omitted.",
+                              "Administrator phone will be used when omitted.",
                           }
                         )}
                       </div>
@@ -697,9 +813,10 @@ export const Register = () => {
                         optional: true,
                         placeholder:
                           "workshop@example.com",
-                        autoComplete: "email",
+                        autoComplete:
+                          "email",
                         helperText:
-                          "The administrator email will be used when omitted.",
+                          "Administrator email will be used when omitted.",
                       }
                     )}
 
@@ -715,7 +832,7 @@ export const Register = () => {
                       }
                     )}
 
-                    <div className="row">
+                    <div className="row g-3">
                       <div className="col-md-4">
                         {renderField(
                           "postal_code",
@@ -723,8 +840,10 @@ export const Register = () => {
                           "text",
                           {
                             maxLength: 5,
-                            placeholder: "28001",
-                            inputMode: "numeric",
+                            placeholder:
+                              "28001",
+                            inputMode:
+                              "numeric",
                             autoComplete:
                               "postal-code",
                           }
@@ -769,7 +888,7 @@ export const Register = () => {
                     <div className="d-grid d-sm-flex justify-content-sm-end mt-4">
                       <button
                         type="button"
-                        className="btn btn-warning fw-bold px-4 py-2 rounded-3"
+                        className="btn btn-dark fw-bold px-4 py-2 rounded-3"
                         onClick={handleNextStep}
                         disabled={submitting}
                       >
@@ -779,20 +898,23 @@ export const Register = () => {
                   </>
                 )}
 
+                {/* STEP 2 */}
+
                 {currentStep === 2 && (
                   <>
                     <div className="mb-4">
-                      <h2 className="h5 fw-bold mb-1">
-                        Administrator details
+                      <h2 className="h5 fw-bold mb-2">
+                        Administrator account
                       </h2>
 
-                      <p className="text-muted small mb-0">
-                        These credentials will be used to
-                        access and manage the workshop.
+                      <p className="text-secondary mb-0">
+                        Create the account that will manage
+                        employees, customers, vehicles and
+                        services.
                       </p>
                     </div>
 
-                    <div className="row">
+                    <div className="row g-3">
                       <div className="col-md-6">
                         {renderField(
                           "manager_first_name",
@@ -818,7 +940,7 @@ export const Register = () => {
                       </div>
                     </div>
 
-                    <div className="row">
+                    <div className="row g-3">
                       <div className="col-md-6">
                         {renderField(
                           "manager_dni",
@@ -828,8 +950,6 @@ export const Register = () => {
                             maxLength: 9,
                             placeholder:
                               "12345678A",
-                            autoCapitalize:
-                              "characters",
                           }
                         )}
                       </div>
@@ -842,7 +962,8 @@ export const Register = () => {
                           {
                             placeholder:
                               "+34600000000",
-                            autoComplete: "tel",
+                            autoComplete:
+                              "tel",
                           }
                         )}
                       </div>
@@ -855,7 +976,8 @@ export const Register = () => {
                       {
                         placeholder:
                           "admin@example.com",
-                        autoComplete: "email",
+                        autoComplete:
+                          "email",
                       }
                     )}
 

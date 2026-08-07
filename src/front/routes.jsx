@@ -34,39 +34,65 @@ const NotFound = () => {
 };
 
 const Routes = createRoutesFromElements(
-  <>
+  <Route
+    path="/"
+    element={<AppLayout />}
+    errorElement={<NotFound />}
+  >
     {/* Public area */}
-    <Route
-      path="/"
-      element={<AppLayout />}
-      errorElement={<NotFound />}
-    >
-      <Route index element={<Home />} />
-      <Route path="login" element={<Login />} />
-      <Route path="register" element={<Register />} />
-      <Route
-        path="forgot-password"
-        element={<ForgotPassword />}
-      />
-    </Route>
 
-    {/* Redirect according to the logged-in user's role */}
+    <Route index element={<Home />} />
+
     <Route
-      path="/dashboard"
+      path="login"
+      element={<Login />}
+    />
+
+    <Route
+      path="register"
+      element={<Register />}
+    />
+
+    <Route
+      path="forgot-password"
+      element={<ForgotPassword />}
+    />
+
+    {/* Redirect according to logged-in role */}
+
+    <Route
+      path="dashboard"
       element={<DashboardRedirect />}
-      errorElement={<NotFound />}
     />
 
     {/* Admin area */}
+
     <Route
-      path="/admin"
-      element={<DashboardLayout allowedRole="admin" />}
-      errorElement={<NotFound />}
+      path="admin"
+      element={
+        <DashboardLayout allowedRole="admin" />
+      }
     >
-      <Route index element={<AdminDashboard />} />
-      <Route path="customers" element={<CustomerList />} />
-      <Route path="mechanics" element={<MechanicList />} />
-      <Route path="vehicles" element={<VehicleList />} />
+      <Route
+        index
+        element={<AdminDashboard />}
+      />
+
+      <Route
+        path="customers"
+        element={<CustomerList />}
+      />
+
+      <Route
+        path="mechanics"
+        element={<MechanicList />}
+      />
+
+      <Route
+        path="vehicles"
+        element={<VehicleList />}
+      />
+
       <Route
         path="services/new"
         element={<ServiceFormPage />}
@@ -74,17 +100,27 @@ const Routes = createRoutesFromElements(
     </Route>
 
     {/* Mechanic area */}
+
     <Route
-      path="/mechanic"
-      element={<DashboardLayout allowedRole="mechanic" />}
-      errorElement={<NotFound />}
+      path="mechanic"
+      element={
+        <DashboardLayout allowedRole="mechanic" />
+      }
     >
-      <Route index element={<MechanicDashboard />} />
+      <Route
+        index
+        element={<MechanicDashboard />}
+      />
     </Route>
 
-    {/* Any unknown URL */}
-    <Route path="*" element={<NotFound />} />
-  </>
+    {/* Unknown routes */}
+
+    <Route
+      path="*"
+      element={<NotFound />}
+    />
+  </Route>
 );
 
-export const router = createBrowserRouter(Routes);
+export const router =
+  createBrowserRouter(Routes);
