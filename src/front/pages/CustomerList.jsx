@@ -1,974 +1,2919 @@
-import { useEffect, useMemo, useState } from "react";
-import { Users, Search, Plus, Copy, FileSpreadsheet, FileText, TableProperties, Eye, FilterX, ArrowUpDown, Trash2, Pencil } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  CarFront,
+  Columns3,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  FilterX,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  Users,
+} from "lucide-react";
+
 import * as XLSX from "xlsx";
+
+import {
+  createCustomer,
+  deactivateCustomer,
+  getCustomers,
+  updateCustomer,
+} from "../services/api";
+
 import "./CustomerList.css";
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:3001";
-const PHONE_REGEX = /^\+?[0-9\s()-]{7,20}$/;
-const DNI_REGEX = /^\d{8}[A-Z]$/;
-const NIE_REGEX = /^[XYZ]\d{7}[A-Z]$/;
+
+// =========================================================
+// VALIDATION
+// =========================================================
+
+const PHONE_REGEX =
+  /^\+?[0-9\s()-]{7,20}$/;
+
+const DNI_REGEX =
+  /^\d{8}[A-Z]$/;
+
+const NIE_REGEX =
+  /^[XYZ]\d{7}[A-Z]$/;
+
+
+// =========================================================
+// INITIAL STATES
+// =========================================================
 
 const INITIAL_FILTERS = {
-    full_name: "",
-    dni: "",
-    driving_license: "",
-    phone: "",
-    vehicles_summary: "",
-    email: "",
-    address: ""
+  full_name: "",
+  dni: "",
+  driving_license: "",
+  phone: "",
+  email: "",
+  vehicles_summary: "",
+  address: "",
 };
+
 
 const INITIAL_VISIBILITY = {
-    full_name: true,
-    dni: true,
-    driving_license: true,
-    phone: true,
-    vehicles_summary: true,
-    email: true,
-    address: true,
-    actions: true
+  customer: true,
+  contact: true,
+  vehicles: true,
+  address: false,
 };
 
-const initialFormState = {
-    first_name: "",
-    last_name: "",
-    dni: "",
-    driving_license: "",
-    phone: "",
-    email: "",
-    address: ""
+
+const INITIAL_FORM_STATE = {
+  first_name: "",
+  last_name: "",
+  dni: "",
+  driving_license: "",
+  phone: "",
+  email: "",
+  address: "",
 };
 
-const getToken = () => localStorage.getItem("token");
+
+const COLUMN_OPTIONS = [
+  {
+    key: "customer",
+    label: "Customer",
+  },
+  {
+    key: "contact",
+    label: "Contact",
+  },
+  {
+    key: "vehicles",
+    label: "Vehicles",
+  },
+  {
+    key: "address",
+    label: "Address",
+  },
+];
+
+
+// =========================================================
+// HELPERS
+// =========================================================
 
 const formatVehicle = (vehicle) => {
-    const plate = vehicle.plate || "No plate";
-    const brandModel = [vehicle.brand, vehicle.model].filter(Boolean).join(" ");
+  const plate =
+    vehicle.plate || "No plate";
 
-    return brandModel ? `${plate} - ${brandModel}` : plate;
+  const brandModel = [
+    vehicle.brand,
+    vehicle.model,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return brandModel
+    ? `${plate} - ${brandModel}`
+    : plate;
 };
+
 
 const normalizeCustomer = (customer) => {
-    const vehicles = customer.vehicles || [];
+  const vehicles =
+    customer.vehicles || [];
 
-    return {
-        id: customer.id,
-        first_name: customer.first_name || "",
-        last_name: customer.last_name || "",
-        full_name: `${customer.first_name || ""} ${customer.last_name || ""}`.trim(),
-        dni: customer.dni || "",
-        driving_license: customer.driving_license || "",
-        phone: customer.phone || "",
-        email: customer.email || "",
-        address: customer.address || "",
-        vehicles,
-        vehicles_count: customer.vehicles_count ?? vehicles.length,
-        vehicles_summary: vehicles.length > 0
-            ? vehicles.map(formatVehicle).join(" | ")
-            : "No vehicles"
-    };
+  return {
+    id: customer.id,
+
+    first_name:
+      customer.first_name || "",
+
+    last_name:
+      customer.last_name || "",
+
+    full_name: `${
+      customer.first_name || ""
+    } ${
+      customer.last_name || ""
+    }`.trim(),
+
+    dni:
+      customer.dni || "",
+
+    driving_license:
+      customer.driving_license || "",
+
+    phone:
+      customer.phone || "",
+
+    email:
+      customer.email || "",
+
+    address:
+      customer.address || "",
+
+    vehicles,
+
+    vehicles_count:
+      customer.vehicles_count ??
+      vehicles.length,
+
+    vehicles_summary:
+      vehicles.length > 0
+        ? vehicles
+            .map(formatVehicle)
+            .join(" | ")
+        : "",
+  };
 };
 
-export default function CustomerList() {
-    const [data, setData] = useState([]);
-    const [globalSearch, setGlobalSearch] = useState("");
-    const [recordsPerPage, setRecordsPerPage] = useState(10);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
-    const [columnFilters, setColumnFilters] = useState(INITIAL_FILTERS);
-    const [visibleColumns, setVisibleColumns] = useState(INITIAL_VISIBILITY);
-    const [selectedRows, setSelectedRows] = useState({});
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [editingCustomer, setEditingCustomer] = useState(null);
-    const [newCustomer, setNewCustomer] = useState(initialFormState);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [formErrors, setFormErrors] = useState({});
 
-    const fetchCustomers = async () => {
-        setLoading(true);
+const getInitials = (customer) => {
+  const first =
+    customer.first_name?.[0] || "";
+
+  const last =
+    customer.last_name?.[0] || "";
+
+  return `${first}${last}`
+    .toUpperCase() || "?";
+};
+
+
+const escapeCsvValue = (value) => {
+  return `"${String(value ?? "")
+    .replaceAll('"', '""')}"`;
+};
+
+
+// =========================================================
+// SMART SEARCH
+// =========================================================
+
+const matchesWordStart = (
+  value,
+  searchTerm
+) => {
+  const normalizedValue =
+    String(value || "")
+      .toLowerCase()
+      .trim();
+
+  return normalizedValue
+    .split(/\s+/)
+    .some((word) =>
+      word.startsWith(
+        searchTerm
+      )
+    );
+};
+
+
+// =========================================================
+// COMPONENT
+// =========================================================
+
+export default function CustomerList() {
+
+  // -------------------------------------------------------
+  // Customer data
+  // -------------------------------------------------------
+
+  const [data, setData] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+
+  // -------------------------------------------------------
+  // Search and filters
+  // -------------------------------------------------------
+
+  const [
+    globalSearch,
+    setGlobalSearch,
+  ] = useState("");
+
+  const [
+    columnFilters,
+    setColumnFilters,
+  ] = useState(
+    INITIAL_FILTERS
+  );
+
+  const [
+    showFilters,
+    setShowFilters,
+  ] = useState(false);
+
+
+  // -------------------------------------------------------
+  // Table options
+  // -------------------------------------------------------
+
+  const [
+    visibleColumns,
+    setVisibleColumns,
+  ] = useState(
+    INITIAL_VISIBILITY
+  );
+
+  const [
+    showColumnsMenu,
+    setShowColumnsMenu,
+  ] = useState(false);
+
+  const [
+    showExportMenu,
+    setShowExportMenu,
+  ] = useState(false);
+
+
+  // -------------------------------------------------------
+  // Pagination
+  // -------------------------------------------------------
+
+  const [
+    recordsPerPage,
+    setRecordsPerPage,
+  ] = useState(10);
+
+  const [
+    currentPage,
+    setCurrentPage,
+  ] = useState(1);
+
+
+  // -------------------------------------------------------
+  // Customer modal
+  // -------------------------------------------------------
+
+  const [
+    showCustomerModal,
+    setShowCustomerModal,
+  ] = useState(false);
+
+  const [
+    editingCustomer,
+    setEditingCustomer,
+  ] = useState(null);
+
+  const [
+    customerForm,
+    setCustomerForm,
+  ] = useState(
+    INITIAL_FORM_STATE
+  );
+
+  const [
+    formErrors,
+    setFormErrors,
+  ] = useState({});
+
+  const [
+    modalError,
+    setModalError,
+  ] = useState("");
+
+  const [
+    savingCustomer,
+    setSavingCustomer,
+  ] = useState(false);
+
+  const [
+    deactivatingId,
+    setDeactivatingId,
+  ] = useState(null);
+
+
+  // =======================================================
+  // LOAD CUSTOMERS
+  // =======================================================
+
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const result =
+        await getCustomers();
+
+      const customers =
+        result.customers || [];
+
+      setData(
+        customers.map(
+          normalizeCustomer
+        )
+      );
+
+    } catch (error) {
+
+      setError(
+        error.message ||
+          "Could not load customers."
+      );
+
+    } finally {
+
+      setLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+
+  // Prevent background scroll while modal is open.
+
+  useEffect(() => {
+
+    if (!showCustomerModal) {
+      return;
+    }
+
+    const originalOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow =
+      "hidden";
+
+    return () => {
+      document.body.style.overflow =
+        originalOverflow;
+    };
+
+  }, [showCustomerModal]);
+
+
+  // =======================================================
+  // FILTERING
+  // =======================================================
+
+  const activeFilterCount =
+    useMemo(() => {
+
+      return Object.values(
+        columnFilters
+      ).filter(
+        (value) =>
+          value.trim() !== ""
+      ).length;
+
+    }, [columnFilters]);
+
+
+  const filteredData =
+    useMemo(() => {
+
+      const searchTerm =
+        globalSearch
+          .trim()
+          .toLowerCase();
+
+
+      return data.filter(
+        (customer) => {
+
+          // -------------------------------------------------
+          // Natural text fields
+          //
+          // Search must match the START of a word.
+          //
+          // adr -> Adriano ✅
+          // adr -> Madrid ❌
+          // mad -> Madrid ✅
+          // maz -> Mazda ✅
+          // -------------------------------------------------
+
+          const matchesTextFields = [
+            customer.full_name,
+            customer.address,
+            customer.vehicles_summary,
+          ].some((value) =>
+            matchesWordStart(
+              value,
+              searchTerm
+            )
+          );
+
+
+          // -------------------------------------------------
+          // Identifier fields
+          //
+          // Partial matches are useful here.
+          //
+          // 6004 -> phone ✅
+          // X542 -> NIE ✅
+          // gmail -> email ✅
+          // -------------------------------------------------
+
+          const matchesFlexibleFields = [
+            customer.dni,
+            customer.phone,
+            customer.email,
+            customer.driving_license,
+          ].some((value) =>
+            String(value || "")
+              .toLowerCase()
+              .includes(
+                searchTerm
+              )
+          );
+
+
+          const matchesGlobal =
+            !searchTerm ||
+            matchesTextFields ||
+            matchesFlexibleFields;
+
+
+          // -------------------------------------------------
+          // Advanced filters
+          // -------------------------------------------------
+
+          const matchesFilters =
+            Object.entries(
+              columnFilters
+            ).every(
+              ([key, value]) => {
+
+                const filterValue =
+                  value
+                    .trim()
+                    .toLowerCase();
+
+                if (!filterValue) {
+                  return true;
+                }
+
+                return String(
+                  customer[key] || ""
+                )
+                  .toLowerCase()
+                  .includes(
+                    filterValue
+                  );
+              }
+            );
+
+
+          return (
+            matchesGlobal &&
+            matchesFilters
+          );
+        }
+      );
+
+    }, [
+      data,
+      globalSearch,
+      columnFilters,
+    ]);
+
+
+  const handleFilterChange = (
+    field,
+    value
+  ) => {
+
+    setColumnFilters(
+      (currentFilters) => ({
+        ...currentFilters,
+        [field]: value,
+      })
+    );
+
+    setCurrentPage(1);
+  };
+
+
+  const handleClearFilters = () => {
+
+    setGlobalSearch("");
+
+    setColumnFilters(
+      INITIAL_FILTERS
+    );
+
+    setCurrentPage(1);
+  };
+
+
+  // =======================================================
+  // PAGINATION
+  // =======================================================
+
+  const totalPages =
+    recordsPerPage === -1
+      ? 1
+      : Math.max(
+          1,
+          Math.ceil(
+            filteredData.length /
+              recordsPerPage
+          )
+        );
+
+
+  useEffect(() => {
+
+    if (
+      currentPage > totalPages
+    ) {
+      setCurrentPage(
+        totalPages
+      );
+    }
+
+  }, [
+    currentPage,
+    totalPages,
+  ]);
+
+
+  const paginatedData =
+    useMemo(() => {
+
+      if (
+        recordsPerPage === -1
+      ) {
+        return filteredData;
+      }
+
+      const startIndex =
+        (currentPage - 1) *
+        recordsPerPage;
+
+      return filteredData.slice(
+        startIndex,
+        startIndex +
+          recordsPerPage
+      );
+
+    }, [
+      filteredData,
+      currentPage,
+      recordsPerPage,
+    ]);
+
+
+  const firstVisibleRecord =
+    filteredData.length === 0
+      ? 0
+      : recordsPerPage === -1
+        ? 1
+        : (currentPage - 1) *
+            recordsPerPage +
+          1;
+
+
+  const lastVisibleRecord =
+    recordsPerPage === -1
+      ? filteredData.length
+      : Math.min(
+          currentPage *
+            recordsPerPage,
+          filteredData.length
+        );
+
+
+  const visiblePageNumbers =
+    useMemo(() => {
+
+      const amount =
+        Math.min(
+          5,
+          totalPages
+        );
+
+      let start =
+        Math.max(
+          1,
+          currentPage - 2
+        );
+
+      if (
+        start + amount - 1 >
+        totalPages
+      ) {
+        start =
+          Math.max(
+            1,
+            totalPages -
+              amount +
+              1
+          );
+      }
+
+      return Array.from(
+        {
+          length: amount,
+        },
+        (_, index) =>
+          start + index
+      );
+
+    }, [
+      currentPage,
+      totalPages,
+    ]);
+
+
+  // =======================================================
+  // COLUMN VISIBILITY
+  // =======================================================
+
+  const handleToggleColumn = (
+    column
+  ) => {
+
+    setVisibleColumns(
+      (currentColumns) => ({
+        ...currentColumns,
+        [column]:
+          !currentColumns[
+            column
+          ],
+      })
+    );
+  };
+
+
+  const tableColumnCount =
+    Object.values(
+      visibleColumns
+    ).filter(Boolean).length + 1;
+
+
+  // =======================================================
+  // EXPORT
+  // =======================================================
+
+  const getExportRows = () => {
+
+    return filteredData.map(
+      (customer) => ({
+        Name:
+          customer.full_name,
+
+        "DNI / NIE":
+          customer.dni,
+
+        "Driving License":
+          customer.driving_license,
+
+        Phone:
+          customer.phone,
+
+        Email:
+          customer.email,
+
+        Address:
+          customer.address,
+
+        Vehicles:
+          customer.vehicles_summary ||
+          "No vehicles",
+      })
+    );
+  };
+
+
+  const handleExportExcel = () => {
+
+    const exportRows =
+      getExportRows();
+
+    const worksheet =
+      XLSX.utils.json_to_sheet(
+        exportRows
+      );
+
+    const workbook =
+      XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      "Customers"
+    );
+
+    XLSX.writeFile(
+      workbook,
+      "customer_list.xlsx"
+    );
+
+    setShowExportMenu(false);
+  };
+
+
+  const handleExportCSV = () => {
+
+    const exportRows =
+      getExportRows();
+
+    if (
+      exportRows.length === 0
+    ) {
+      return;
+    }
+
+    const headers =
+      Object.keys(
+        exportRows[0]
+      );
+
+    const rows =
+      exportRows.map(
+        (row) =>
+          headers
+            .map((header) =>
+              escapeCsvValue(
+                row[header]
+              )
+            )
+            .join(",")
+      );
+
+
+    const csvContent = [
+      headers
+        .map(
+          escapeCsvValue
+        )
+        .join(","),
+
+      ...rows,
+    ].join("\n");
+
+
+    const blob =
+      new Blob(
+        [csvContent],
+        {
+          type:
+            "text/csv;charset=utf-8;",
+        }
+      );
+
+
+    const fileUrl =
+      URL.createObjectURL(
+        blob
+      );
+
+
+    const link =
+      document.createElement(
+        "a"
+      );
+
+    link.href =
+      fileUrl;
+
+    link.download =
+      "customer_list.csv";
+
+    document.body.appendChild(
+      link
+    );
+
+    link.click();
+
+    link.remove();
+
+    URL.revokeObjectURL(
+      fileUrl
+    );
+
+    setShowExportMenu(false);
+  };
+
+
+  // =======================================================
+  // FORM
+  // =======================================================
+
+  const handleInputChange = (
+    event
+  ) => {
+
+    const {
+      name,
+      value,
+    } = event.target;
+
+
+    let nextValue =
+      value;
+
+
+    if (name === "dni") {
+
+      nextValue =
+        value
+          .replace(
+            /[\s-]/g,
+            ""
+          )
+          .toUpperCase();
+    }
+
+
+    setCustomerForm(
+      (currentCustomer) => ({
+        ...currentCustomer,
+        [name]: nextValue,
+      })
+    );
+
+
+    if (formErrors[name]) {
+
+      setFormErrors(
+        (currentErrors) => ({
+          ...currentErrors,
+          [name]: undefined,
+        })
+      );
+    }
+
+
+    setModalError("");
+  };
+
+
+  const validateCustomer = () => {
+
+    const errors = {};
+
+
+    const firstName =
+      customerForm.first_name.trim();
+
+    const lastName =
+      customerForm.last_name.trim();
+
+    const phone =
+      customerForm.phone.trim();
+
+    const dni =
+      customerForm.dni
+        .replace(
+          /[\s-]/g,
+          ""
+        )
+        .toUpperCase();
+
+
+    if (!firstName) {
+      errors.first_name =
+        "First name is required.";
+    }
+
+
+    if (!lastName) {
+      errors.last_name =
+        "Last name is required.";
+    }
+
+
+    if (!phone) {
+
+      errors.phone =
+        "Phone is required.";
+
+    } else if (
+      !PHONE_REGEX.test(
+        phone
+      )
+    ) {
+
+      errors.phone =
+        "Enter a valid phone number.";
+    }
+
+
+    if (
+      dni &&
+      !DNI_REGEX.test(dni) &&
+      !NIE_REGEX.test(dni)
+    ) {
+
+      errors.dni =
+        "Enter a valid DNI or NIE. Example: 12345678Z or X1234567L.";
+    }
+
+
+    return errors;
+  };
+
+
+  // =======================================================
+  // MODAL
+  // =======================================================
+
+  const handleOpenCreateModal =
+    () => {
+
+      setEditingCustomer(null);
+
+      setCustomerForm(
+        INITIAL_FORM_STATE
+      );
+
+      setFormErrors({});
+
+      setModalError("");
+
+      setShowCustomerModal(
+        true
+      );
+    };
+
+
+  const handleOpenEditModal = (
+    customer
+  ) => {
+
+    setEditingCustomer(
+      customer
+    );
+
+    setCustomerForm({
+      first_name:
+        customer.first_name || "",
+
+      last_name:
+        customer.last_name || "",
+
+      dni:
+        customer.dni || "",
+
+      driving_license:
+        customer.driving_license ||
+        "",
+
+      phone:
+        customer.phone || "",
+
+      email:
+        customer.email || "",
+
+      address:
+        customer.address || "",
+    });
+
+    setFormErrors({});
+
+    setModalError("");
+
+    setShowCustomerModal(
+      true
+    );
+  };
+
+
+  const handleCloseModal = () => {
+
+    if (savingCustomer) {
+      return;
+    }
+
+    setShowCustomerModal(
+      false
+    );
+
+    setEditingCustomer(null);
+
+    setCustomerForm(
+      INITIAL_FORM_STATE
+    );
+
+    setFormErrors({});
+
+    setModalError("");
+  };
+
+
+  const handleBackdropClick = (
+    event
+  ) => {
+
+    if (
+      event.target ===
+      event.currentTarget
+    ) {
+      handleCloseModal();
+    }
+  };
+
+
+  // =======================================================
+  // CREATE / UPDATE CUSTOMER
+  // =======================================================
+
+  const handleSaveCustomer =
+    async (event) => {
+
+      event.preventDefault();
+
+
+      const validationErrors =
+        validateCustomer();
+
+
+      if (
+        Object.keys(
+          validationErrors
+        ).length > 0
+      ) {
+
+        setFormErrors(
+          validationErrors
+        );
+
+        return;
+      }
+
+
+      try {
+
+        setSavingCustomer(
+          true
+        );
+
+        setModalError("");
+
+
+        const payload = {
+
+          first_name:
+            customerForm.first_name.trim(),
+
+          last_name:
+            customerForm.last_name.trim(),
+
+          dni:
+            customerForm.dni
+              .trim()
+              .toUpperCase(),
+
+          driving_license:
+            customerForm.driving_license.trim(),
+
+          phone:
+            customerForm.phone.trim(),
+
+          email:
+            customerForm.email.trim(),
+
+          address:
+            customerForm.address.trim(),
+        };
+
+
+        if (editingCustomer) {
+
+          const result =
+            await updateCustomer(
+              editingCustomer.id,
+              payload
+            );
+
+
+          const updatedCustomer =
+            normalizeCustomer({
+              ...editingCustomer,
+              ...(result.customer ||
+                payload),
+            });
+
+
+          setData(
+            (currentData) =>
+              currentData.map(
+                (customer) =>
+                  customer.id ===
+                  editingCustomer.id
+                    ? updatedCustomer
+                    : customer
+              )
+          );
+
+        } else {
+
+          const result =
+            await createCustomer(
+              payload
+            );
+
+
+          if (result.customer) {
+
+            setData(
+              (currentData) => [
+                normalizeCustomer(
+                  result.customer
+                ),
+                ...currentData,
+              ]
+            );
+
+          } else {
+
+            await fetchCustomers();
+          }
+        }
+
+
+        setShowCustomerModal(
+          false
+        );
+
+        setEditingCustomer(null);
+
+        setCustomerForm(
+          INITIAL_FORM_STATE
+        );
+
+        setFormErrors({});
+
+      } catch (error) {
+
+        setModalError(
+          error.message ||
+            "Could not save customer."
+        );
+
+      } finally {
+
+        setSavingCustomer(
+          false
+        );
+      }
+    };
+
+
+  // =======================================================
+  // DEACTIVATE CUSTOMER
+  // =======================================================
+
+  const handleDeactivateCustomer =
+    async (customer) => {
+
+      const confirmed =
+        window.confirm(
+          `Deactivate ${customer.full_name}?`
+        );
+
+
+      if (!confirmed) {
+        return;
+      }
+
+
+      try {
+
+        setDeactivatingId(
+          customer.id
+        );
+
         setError("");
 
-        try {
-            const token = getToken();
 
-            const response = await fetch(`${API_URL}/api/customers`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+        await deactivateCustomer(
+          customer.id
+        );
 
-            const result = await response.json();
 
-            if (!response.ok) {
-                throw new Error(result.error || result.message || result.msg || "Error loading customers");
-            }
-
-            const normalizedCustomers = result.customers.map(normalizeCustomer);
-            setData(normalizedCustomers);
-        } catch (error) {
-            setError(error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchCustomers();
-    }, []);
-
-    const handleColumnFilterChange = (column, value) => {
-        setColumnFilters((prev) => ({ ...prev, [column]: value }));
-        setCurrentPage(1);
-    };
-
-    const handleToggleColumn = (column) => {
-        setVisibleColumns((prev) => ({ ...prev, [column]: !prev[column] }));
-    };
-
-    const handleClearFilters = () => {
-        setGlobalSearch("");
-        setColumnFilters(INITIAL_FILTERS);
-        setCurrentPage(1);
-    };
-
-    const handleRedirectToSettings = () => {
-        alert("Column reordering can be implemented later.");
-    };
-
-    const filteredData = useMemo(() => {
-        return data.filter((row) => {
-            const matchesGlobal = Object.keys(row).some((key) =>
-                String(row[key]).toLowerCase().includes(globalSearch.toLowerCase())
-            );
-
-            const matchesColumns = Object.keys(columnFilters).every((key) =>
-                String(row[key]).toLowerCase().includes(columnFilters[key].toLowerCase())
-            );
-
-            return matchesGlobal && matchesColumns;
-        });
-    }, [data, globalSearch, columnFilters]);
-
-    const paginatedData = useMemo(() => {
-        if (recordsPerPage === -1) return filteredData;
-
-        const startIndex = (currentPage - 1) * recordsPerPage;
-        return filteredData.slice(startIndex, startIndex + recordsPerPage);
-    }, [filteredData, currentPage, recordsPerPage]);
-
-    const totalPages =
-        recordsPerPage === -1
-            ? 1
-            : Math.max(1, Math.ceil(filteredData.length / recordsPerPage));
-
-    const handleCopy = () => {
-        const visibleKeys = Object.keys(visibleColumns).filter((key) => visibleColumns[key]);
-
-        const textToCopy = paginatedData
-            .map((row) => visibleKeys.map((key) => row[key]).join("\t"))
-            .join("\n");
-
-        navigator.clipboard.writeText(textToCopy);
-        alert("Copied visible records to clipboard.");
-    };
-
-    const handleExportExcel = () => {
-        const visibleKeys = Object.keys(visibleColumns).filter((key) => visibleColumns[key]);
-
-        const exportRows = paginatedData.map((row) => {
-            const filteredRow = {};
-
-            visibleKeys.forEach((key) => {
-                filteredRow[key] = row[key];
-            });
-
-            return filteredRow;
-        });
-
-        const worksheet = XLSX.utils.json_to_sheet(exportRows);
-        const workbook = XLSX.utils.book_new();
-
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
-        XLSX.writeFile(workbook, "customer_list.xlsx");
-    };
-
-    const handleExportCSV = () => {
-        const visibleKeys = Object.keys(visibleColumns).filter((key) => visibleColumns[key]);
-        const headers = visibleKeys.join(",");
-
-        const rows = paginatedData
-            .map((row) =>
-                visibleKeys
-                    .map((key) => `"${String(row[key] || "").replaceAll('"', '""')}"`)
-                    .join(",")
+        setData(
+          (currentData) =>
+            currentData.filter(
+              (item) =>
+                String(item.id) !==
+                String(customer.id)
             )
-            .join("\n");
+        );
 
-        const csvContent = `data:text/csv;charset=utf-8,${headers}\n${rows}`;
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
+      } catch (error) {
 
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", "customer_list.csv");
+        setError(
+          error.message ||
+            "Could not deactivate customer."
+        );
 
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      } finally {
+
+        setDeactivatingId(
+          null
+        );
+      }
     };
 
-    const handleSelectAll = (event) => {
-        if (event.target.checked) {
-            const allSelected = { ...selectedRows };
-            paginatedData.forEach((row) => {
-                allSelected[row.id] = true;
-            });
-            setSelectedRows(allSelected);
-        } else {
-            const newSelected = { ...selectedRows };
-            paginatedData.forEach((row) => {
-                delete newSelected[row.id];
-            });
-            setSelectedRows(newSelected);
-        }
-    };
 
-    const handleSelectRow = (id) => {
-        setSelectedRows((prev) => ({
-            ...prev,
-            [id]: !prev[id]
-        }));
-    };
+  // =======================================================
+  // RENDER
+  // =======================================================
 
-    const handleInputChange = (event) => {
-        const { name, value } = event.target;
+  return (
+    <section className="customer-page">
 
-        if (formErrors[name]) {
-            setFormErrors((currentErrors) => ({
-                ...currentErrors,
-                [name]: undefined
-            }));
-        }
+      {/* ===================================================
+          PAGE HEADER
+          =================================================== */}
 
-        let nextValue = value;
+      <div className="mb-4">
 
-        if (name === "dni") {
-            nextValue = value
-                .replace(/[\s-]/g, "")
-                .toUpperCase();
-        }
+        <div className="d-flex align-items-center gap-3">
 
-        setNewCustomer((currentCustomer) => ({
-            ...currentCustomer,
-            [name]: nextValue
-        }));
-    };
+          <div className="customer-page-icon bg-dark text-warning rounded-3 d-flex align-items-center justify-content-center flex-shrink-0">
 
-    const validateCustomer = () => {
-        const nextErrors = {};
+            <Users size={24} />
 
-        const firstName = (newCustomer.first_name || "").trim();
-        const lastName = (newCustomer.last_name || "").trim();
-        const phone = (newCustomer.phone || "").trim();
-        const dni = (newCustomer.dni || "").replace(/[\s-]/g, "").toUpperCase();
+          </div>
 
-        if (!firstName) {
-            nextErrors.first_name = "Required";
-        }
 
-        if (!lastName) {
-            nextErrors.last_name = "Required";
-        }
+          <div>
 
-        if (!phone) {
-            nextErrors.phone = "Required";
-        } else if (!PHONE_REGEX.test(phone)) {
-            nextErrors.phone = "Invalid phone number";
-        }
+            <h1 className="h3 fw-bold mb-1">
+              Customers
+            </h1>
 
-        if (dni && !DNI_REGEX.test(dni) && !NIE_REGEX.test(dni)) {
-            nextErrors.dni =
-                "Invalid DNI or NIE. Example: 12345678Z or X1234567L";
-        }
+            <p className="text-secondary mb-0">
+              Manage customer and vehicle information
+              registered in your workshop.
+            </p>
 
-        return nextErrors;
-    };
-    const handleOpenEditModal = (customer) => {
-        setFormErrors({});
-        setEditingCustomer(customer);
-        setNewCustomer({
-            first_name: customer.first_name || "",
-            last_name: customer.last_name || "",
-            dni: customer.dni || "",
-            driving_license: customer.driving_license || "",
-            phone: customer.phone || "",
-            email: customer.email || "",
-            address: customer.address || ""
-        });
-        setShowAddModal(true);
-    };
+          </div>
 
-    const handleCloseModal = () => {
-        setFormErrors({});
-        setShowAddModal(false);
-        setEditingCustomer(null);
-        setNewCustomer(initialFormState);
-    };
+        </div>
 
-    const handleSaveCustomer = async (event) => {
-        event.preventDefault();
-        const validationErrors = validateCustomer();
+      </div>
 
-        if (Object.keys(validationErrors).length > 0) {
-            setFormErrors(validationErrors);
-            return;
-        }
 
-        setFormErrors({});
+      {/* ERROR */}
 
-        try {
-            const token = getToken();
-            const isEditing = !!editingCustomer;
-            const method = isEditing ? "PUT" : "POST";
-            const url = isEditing
-                ? `${API_URL}/api/customers/${editingCustomer.id}`
-                : `${API_URL}/api/customers`;
+      {error && (
 
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(newCustomer)
-            });
+        <div
+          className="alert alert-danger"
+          role="alert"
+        >
+          {error}
+        </div>
 
-            const result = await response.json();
+      )}
 
-            if (!response.ok) {
-                throw new Error(result.error || result.message || result.msg || `Error ${isEditing ? "updating" : "creating"} customer`);
-            }
 
-            if (isEditing) {
-                const updatedCustomer = normalizeCustomer(result.customer || { ...editingCustomer, ...newCustomer });
-                setData((prevData) =>
-                    prevData.map((item) => (item.id === editingCustomer.id ? updatedCustomer : item))
-                );
-            } else {
-                setData((prevData) => [normalizeCustomer(result.customer), ...prevData]);
-            }
+      {/* ===================================================
+          TOOLBAR
+          =================================================== */}
 
-            setNewCustomer(initialFormState);
-            setEditingCustomer(null);
-            setShowAddModal(false);
-        } catch (error) {
-            alert(error.message);
-        }
-    };
+      <div className="card border-0 shadow-sm rounded-4 mb-3">
 
-    const handleDeleteCustomer = async (id) => {
-        const confirmDelete = window.confirm("Are you sure you want to deactivate this customer?");
-        if (!confirmDelete) return;
+        <div className="card-body p-3">
 
-        try {
-            const token = getToken();
-            const response = await fetch(`${API_URL}/api/customers/${id}`, {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${token}`
+          <div className="row g-2 align-items-center">
+
+
+            {/* SEARCH */}
+
+            <div className="col-12 col-xl">
+
+              <div className="input-group">
+
+                <span className="input-group-text bg-white border-end-0">
+
+                  <Search
+                    size={18}
+                    className="text-secondary"
+                  />
+
+                </span>
+
+
+                <input
+                  type="search"
+                  className="form-control border-start-0 ps-0"
+                  placeholder="Search by name, DNI, phone, email, address or vehicle..."
+                  value={
+                    globalSearch
+                  }
+                  onChange={(
+                    event
+                  ) => {
+
+                    setGlobalSearch(
+                      event.target.value
+                    );
+
+                    setCurrentPage(1);
+                  }}
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* FILTERS */}
+
+            <div className="col-12 col-sm-auto">
+
+              <button
+                type="button"
+                className={`btn w-100 d-flex align-items-center justify-content-center gap-2 ${
+                  showFilters ||
+                  activeFilterCount > 0
+                    ? "btn-dark"
+                    : "btn-outline-secondary"
+                }`}
+                onClick={() =>
+                  setShowFilters(
+                    (current) =>
+                      !current
+                  )
                 }
-            });
+              >
 
-            if (!response.ok) {
-                const result = await response.json();
-                throw new Error(result.error || result.message || "Could not deactivate customer.");
-            }
+                <SlidersHorizontal
+                  size={17}
+                />
 
-            setData((prevData) => prevData.filter((row) => String(row.id) !== String(id)));
-
-            if (selectedRows[id]) {
-                setSelectedRows((prev) => {
-                    const updated = { ...prev };
-                    delete updated[id];
-                    return updated;
-                });
-            }
-        } catch (error) {
-            alert(error.message);
-        }
-    };
+                Filters
 
 
-    return (
-        <>
-            <div className="container-fluid mt-4 px-4 app-customer-container">
-                <div className="d-flex align-items-center mb-4">
-                    <Users className="me-2 text-secondary" size={32} />
-                    <h2 className="header-title m-0">Customer List</h2>
-                </div>
+                {activeFilterCount >
+                  0 && (
 
-                {error && (
-                    <div className="alert alert-danger" role="alert">
-                        {error}
-                    </div>
+                  <span className="badge bg-warning text-dark">
+                    {
+                      activeFilterCount
+                    }
+                  </span>
+
                 )}
 
-                <div className="row mb-3 g-2">
-                    <div className="col-md-10">
-                        <div className="input-group">
-                            <span className="input-group-text bg-white">
-                                <Search size={18} className="text-muted" />
+              </button>
+
+            </div>
+
+
+            {/* EXPORT */}
+
+            <div className="col-6 col-sm-auto position-relative">
+
+              <button
+                type="button"
+                className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
+                onClick={() => {
+
+                  setShowExportMenu(
+                    (current) =>
+                      !current
+                  );
+
+                  setShowColumnsMenu(
+                    false
+                  );
+                }}
+              >
+
+                <Download
+                  size={17}
+                />
+
+                Export
+
+              </button>
+
+
+              {showExportMenu && (
+
+                <div className="dropdown-menu dropdown-menu-end show customer-dropdown-menu shadow">
+
+                  <button
+                    type="button"
+                    className="dropdown-item d-flex align-items-center gap-2 py-2"
+                    onClick={
+                      handleExportExcel
+                    }
+                  >
+
+                    <FileSpreadsheet
+                      size={17}
+                    />
+
+                    Excel
+
+                  </button>
+
+
+                  <button
+                    type="button"
+                    className="dropdown-item d-flex align-items-center gap-2 py-2"
+                    onClick={
+                      handleExportCSV
+                    }
+                  >
+
+                    <FileText
+                      size={17}
+                    />
+
+                    CSV
+
+                  </button>
+
+                </div>
+
+              )}
+
+            </div>
+
+
+            {/* COLUMNS */}
+
+            <div className="col-6 col-sm-auto position-relative">
+
+              <button
+                type="button"
+                className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2"
+                onClick={() => {
+
+                  setShowColumnsMenu(
+                    (current) =>
+                      !current
+                  );
+
+                  setShowExportMenu(
+                    false
+                  );
+                }}
+              >
+
+                <Columns3
+                  size={17}
+                />
+
+                Columns
+
+              </button>
+
+
+              {showColumnsMenu && (
+
+                <div className="dropdown-menu dropdown-menu-end show customer-dropdown-menu shadow p-2">
+
+                  <p className="dropdown-header fw-bold text-dark px-2">
+                    Visible columns
+                  </p>
+
+
+                  {COLUMN_OPTIONS.map(
+                    (column) => (
+
+                      <label
+                        key={
+                          column.key
+                        }
+                        className="dropdown-item d-flex align-items-center gap-2 py-2 customer-column-option"
+                      >
+
+                        <input
+                          type="checkbox"
+                          className="form-check-input m-0"
+                          checked={
+                            visibleColumns[
+                              column.key
+                            ]
+                          }
+                          onChange={() =>
+                            handleToggleColumn(
+                              column.key
+                            )
+                          }
+                        />
+
+                        {
+                          column.label
+                        }
+
+                      </label>
+
+                    )
+                  )}
+
+                </div>
+
+              )}
+
+            </div>
+
+
+            {/* ADD CUSTOMER */}
+
+            <div className="col-12 col-sm-auto">
+
+              <button
+                type="button"
+                className="btn btn-warning w-100 fw-bold d-flex align-items-center justify-content-center gap-2 px-3"
+                onClick={
+                  handleOpenCreateModal
+                }
+              >
+
+                <Plus size={17} />
+
+                Add customer
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* ===================================================
+          ADVANCED FILTERS
+          =================================================== */}
+
+      {showFilters && (
+
+        <div className="card border-0 shadow-sm rounded-4 mb-3 customer-filter-panel">
+
+          <div className="card-body p-4">
+
+            <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+
+              <div>
+
+                <h2 className="h6 fw-bold mb-1">
+                  Advanced filters
+                </h2>
+
+                <p className="small text-secondary mb-0">
+                  Results update as you type.
+                </p>
+
+              </div>
+
+
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-danger d-inline-flex align-items-center justify-content-center gap-2 align-self-md-start"
+                onClick={
+                  handleClearFilters
+                }
+              >
+
+                <FilterX
+                  size={16}
+                />
+
+                Clear filters
+
+              </button>
+
+            </div>
+
+
+            <div className="row g-3">
+
+
+              <div className="col-12 col-md-6 col-xl-4">
+
+                <label className="form-label small fw-semibold">
+                  Name
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Customer name"
+                  value={
+                    columnFilters.full_name
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    handleFilterChange(
+                      "full_name",
+                      event.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+
+              <div className="col-12 col-md-6 col-xl-4">
+
+                <label className="form-label small fw-semibold">
+                  DNI / NIE
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control text-uppercase"
+                  placeholder="12345678Z"
+                  value={
+                    columnFilters.dni
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    handleFilterChange(
+                      "dni",
+                      event.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+
+              <div className="col-12 col-md-6 col-xl-4">
+
+                <label className="form-label small fw-semibold">
+                  Driving licence
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Licence"
+                  value={
+                    columnFilters.driving_license
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    handleFilterChange(
+                      "driving_license",
+                      event.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+
+              <div className="col-12 col-md-6 col-xl-4">
+
+                <label className="form-label small fw-semibold">
+                  Phone
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Phone number"
+                  value={
+                    columnFilters.phone
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    handleFilterChange(
+                      "phone",
+                      event.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+
+              <div className="col-12 col-md-6 col-xl-4">
+
+                <label className="form-label small fw-semibold">
+                  Email
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Email address"
+                  value={
+                    columnFilters.email
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    handleFilterChange(
+                      "email",
+                      event.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+
+              <div className="col-12 col-md-6 col-xl-4">
+
+                <label className="form-label small fw-semibold">
+                  Vehicle
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Plate, brand or model"
+                  value={
+                    columnFilters.vehicles_summary
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    handleFilterChange(
+                      "vehicles_summary",
+                      event.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+
+              <div className="col-12">
+
+                <label className="form-label small fw-semibold">
+                  Address
+                </label>
+
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Customer address"
+                  value={
+                    columnFilters.address
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    handleFilterChange(
+                      "address",
+                      event.target.value
+                    )
+                  }
+                />
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* ===================================================
+          RESULT SUMMARY
+          =================================================== */}
+
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+
+        <p className="small text-secondary mb-0">
+
+          {filteredData.length ===
+          data.length
+            ? `${data.length} ${
+                data.length === 1
+                  ? "customer"
+                  : "customers"
+              }`
+            : `${filteredData.length} of ${data.length} customers`}
+
+        </p>
+
+
+        {(globalSearch ||
+          activeFilterCount >
+            0) && (
+
+          <button
+            type="button"
+            className="btn btn-link btn-sm text-danger text-decoration-none p-0"
+            onClick={
+              handleClearFilters
+            }
+          >
+
+            Clear search and filters
+
+          </button>
+
+        )}
+
+      </div>
+
+
+      {/* ===================================================
+          TABLE
+          =================================================== */}
+
+      <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+
+        <div className="table-responsive">
+
+          <table className="table align-middle mb-0 customer-table">
+
+            <thead>
+
+              <tr>
+
+                {visibleColumns.customer && (
+                  <th>
+                    Customer
+                  </th>
+                )}
+
+                {visibleColumns.contact && (
+                  <th>
+                    Contact
+                  </th>
+                )}
+
+                {visibleColumns.vehicles && (
+                  <th>
+                    Vehicles
+                  </th>
+                )}
+
+                {visibleColumns.address && (
+                  <th>
+                    Address
+                  </th>
+                )}
+
+                <th className="text-end">
+                  Actions
+                </th>
+
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              {loading ? (
+
+                <tr>
+
+                  <td
+                    colSpan={
+                      tableColumnCount
+                    }
+                    className="text-center py-5"
+                  >
+
+                    <div
+                      className="spinner-border spinner-border-sm text-warning me-2"
+                      role="status"
+                    />
+
+                    Loading customers...
+
+                  </td>
+
+                </tr>
+
+              ) : paginatedData.length ===
+                0 ? (
+
+                <tr>
+
+                  <td
+                    colSpan={
+                      tableColumnCount
+                    }
+                    className="text-center py-5"
+                  >
+
+                    <Users
+                      size={34}
+                      className="text-secondary mb-3"
+                    />
+
+                    <h3 className="h6 fw-bold">
+                      No customers found
+                    </h3>
+
+                    <p className="small text-secondary mb-0">
+                      Try changing the search or filters.
+                    </p>
+
+                  </td>
+
+                </tr>
+
+              ) : (
+
+                paginatedData.map(
+                  (customer) => (
+
+                    <tr
+                      key={
+                        customer.id
+                      }
+                    >
+
+
+                      {/* CUSTOMER */}
+
+                      {visibleColumns.customer && (
+
+                        <td>
+
+                          <div className="d-flex align-items-center gap-3">
+
+                            <div className="customer-avatar rounded-circle bg-dark text-warning d-flex align-items-center justify-content-center fw-bold flex-shrink-0">
+
+                              {getInitials(
+                                customer
+                              )}
+
+                            </div>
+
+
+                            <div>
+
+                              <p className="fw-bold mb-1">
+                                {
+                                  customer.full_name
+                                }
+                              </p>
+
+
+                              <div className="small text-secondary">
+
+                                {customer.dni
+                                  ? `DNI/NIE: ${customer.dni}`
+                                  : "No DNI/NIE"}
+
+
+                                {customer.driving_license && (
+
+                                  <span className="d-block">
+
+                                    Licence:{" "}
+                                    {
+                                      customer.driving_license
+                                    }
+
+                                  </span>
+
+                                )}
+
+                              </div>
+
+                            </div>
+
+                          </div>
+
+                        </td>
+
+                      )}
+
+
+                      {/* CONTACT */}
+
+                      {visibleColumns.contact && (
+
+                        <td>
+
+                          <div className="d-flex flex-column gap-1 small">
+
+                            <span className="d-flex align-items-center gap-2">
+
+                              <Phone
+                                size={14}
+                                className="text-secondary"
+                              />
+
+                              {customer.phone ||
+                                "-"}
+
                             </span>
 
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="Filter customers by any field"
-                                value={globalSearch}
-                                onChange={(event) => {
-                                    setGlobalSearch(event.target.value);
-                                    setCurrentPage(1);
-                                }}
-                            />
-                        </div>
-                    </div>
 
-                    <div className="col-md-2">
-                        <button
-                            onClick={() => {
-                                setFormErrors({});
-                                setEditingCustomer(null);
-                                setNewCustomer(initialFormState);
-                                setShowAddModal(true);
-                            }}
-                            className="btn btn-yellow w-100 d-flex align-items-center justify-content-center gap-1 fw-bold"
-                        >
-                            <Plus size={18} /> Add Customer
-                        </button>
-                    </div>
-                </div>
+                            <span className="d-flex align-items-center gap-2 text-secondary">
 
-                <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                    <div className="d-flex gap-1 flex-wrap">
-                        <button
-                            onClick={handleCopy}
-                            className="btn btn-orange-action btn-sm d-flex align-items-center gap-1"
-                        >
-                            <Copy size={14} /> Copy
-                        </button>
+                              <Mail
+                                size={14}
+                              />
 
-                        <button
-                            onClick={handleExportExcel}
-                            className="btn btn-orange-action btn-sm d-flex align-items-center gap-1"
-                        >
-                            <FileSpreadsheet size={14} /> Excel
-                        </button>
+                              {customer.email ||
+                                "No email"}
 
-                        <button
-                            onClick={handleExportCSV}
-                            className="btn btn-orange-action btn-sm d-flex align-items-center gap-1"
-                        >
-                            <FileText size={14} /> CSV
-                        </button>
+                            </span>
 
-                        <div className="position-relative">
-                            <button
-                                onClick={() => setShowOptionsDropdown(!showOptionsDropdown)}
-                                className="btn btn-orange-action btn-sm d-flex align-items-center gap-1"
-                            >
-                                <TableProperties size={14} /> Table Options
-                            </button>
+                          </div>
 
-                            {showOptionsDropdown && (
-                                <div className="dropdown-menu show shadow p-2 position-absolute start-0 mt-1 backend-dropdown">
-                                    <div className="dropdown-header px-2 py-1 fw-bold text-dark d-flex align-items-center gap-1">
-                                        <Eye size={14} /> Show / Hide Columns
+                        </td>
+
+                      )}
+
+
+                      {/* VEHICLES */}
+
+                      {visibleColumns.vehicles && (
+
+                        <td>
+
+                          {customer.vehicles.length >
+                          0 ? (
+
+                            <div className="d-flex flex-column gap-2">
+
+                              {customer.vehicles
+                                .slice(
+                                  0,
+                                  2
+                                )
+                                .map(
+                                  (
+                                    vehicle
+                                  ) => (
+
+                                    <div
+                                      key={
+                                        vehicle.id
+                                      }
+                                      className="d-flex align-items-center gap-2 small"
+                                    >
+
+                                      <CarFront
+                                        size={15}
+                                        className="text-warning flex-shrink-0"
+                                      />
+
+                                      <span>
+
+                                        <strong>
+                                          {vehicle.plate ||
+                                            "No plate"}
+                                        </strong>
+
+
+                                        {(vehicle.brand ||
+                                          vehicle.model) && (
+
+                                          <span className="text-secondary">
+
+                                            {" "}
+                                            ·{" "}
+
+                                            {[
+                                              vehicle.brand,
+                                              vehicle.model,
+                                            ]
+                                              .filter(
+                                                Boolean
+                                              )
+                                              .join(
+                                                " "
+                                              )}
+
+                                          </span>
+
+                                        )}
+
+                                      </span>
+
                                     </div>
 
-                                    {Object.keys(visibleColumns).map((column) => (
-                                        <label
-                                            key={column}
-                                            className="dropdown-item d-flex align-items-center gap-2 style-cursor"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="form-check-input m-0"
-                                                checked={visibleColumns[column]}
-                                                onChange={() => handleToggleColumn(column)}
-                                            />
-
-                                            <span className="text-capitalize">
-                                                {column.replaceAll("_", " ")}
-                                            </span>
-                                        </label>
-                                    ))}
-
-                                    <div className="dropdown-divider"></div>
-
-                                    <button
-                                        onClick={handleClearFilters}
-                                        className="dropdown-item d-flex align-items-center gap-2 py-2 text-danger"
-                                    >
-                                        <FilterX size={14} /> Clear Filters
-                                    </button>
-
-                                    <button
-                                        onClick={handleRedirectToSettings}
-                                        className="dropdown-item d-flex align-items-center gap-2 py-2"
-                                    >
-                                        <ArrowUpDown size={14} /> Reorder Columns
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="d-flex align-items-center gap-2 text-muted-custom">
-                        <span>Show</span>
-
-                        <select
-                            className="form-select form-select-sm"
-                            value={recordsPerPage}
-                            onChange={(event) => {
-                                setRecordsPerPage(Number(event.target.value));
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <option value={10}>10 records</option>
-                            <option value={100}>100 records</option>
-                            <option value={500}>500 records</option>
-                            <option value={-1}>All records</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div className="card shadow-sm table-card-wrapper">
-                    <div className="card-body p-3 overflow-auto">
-                        <table className="table table-striped table-bordered align-middle m-0 customer-workshop-table">
-                            <thead>
-                                <tr>
-                                    <th style={{ width: "40px" }}>
-                                        <input
-                                            type="checkbox"
-                                            onChange={handleSelectAll}
-                                            checked={
-                                                Object.keys(selectedRows).length === paginatedData.length &&
-                                                paginatedData.length > 0
-                                            }
-                                        />
-                                    </th>
-
-                                    {visibleColumns.full_name && <th>Name</th>}
-                                    {visibleColumns.dni && <th>DNI</th>}
-                                    {visibleColumns.driving_license && <th>Driving License</th>}
-                                    {visibleColumns.phone && <th>Phone</th>}
-                                    {visibleColumns.vehicles_summary && <th>Vehicles</th>}
-                                    {visibleColumns.email && <th>Email</th>}
-                                    {visibleColumns.address && <th>Address</th>}
-                                    {visibleColumns.actions && <th>Actions</th>}
-                                </tr>
-
-                                <tr>
-                                    <td></td>
-
-                                    {visibleColumns.full_name && (
-                                        <td>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Search name"
-                                                value={columnFilters.full_name}
-                                                onChange={(event) =>
-                                                    handleColumnFilterChange("full_name", event.target.value)
-                                                }
-                                            />
-                                        </td>
-                                    )}
-
-                                    {visibleColumns.dni && (
-                                        <td>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Search DNI"
-                                                value={columnFilters.dni}
-                                                onChange={(event) =>
-                                                    handleColumnFilterChange("dni", event.target.value)
-                                                }
-                                            />
-                                        </td>
-                                    )}
-
-                                    {visibleColumns.driving_license && (
-                                        <td>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Search license"
-                                                value={columnFilters.driving_license}
-                                                onChange={(event) =>
-                                                    handleColumnFilterChange("driving_license", event.target.value)
-                                                }
-                                            />
-                                        </td>
-                                    )}
-
-                                    {visibleColumns.phone && (
-                                        <td>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Search phone"
-                                                value={columnFilters.phone}
-                                                onChange={(event) =>
-                                                    handleColumnFilterChange("phone", event.target.value)
-                                                }
-                                            />
-                                        </td>
-                                    )}
-
-                                    {visibleColumns.vehicles_summary && (
-                                        <td>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Search vehicle"
-                                                value={columnFilters.vehicles_summary}
-                                                onChange={(event) =>
-                                                    handleColumnFilterChange("vehicles_summary", event.target.value)
-                                                }
-                                            />
-                                        </td>
-                                    )}
-
-                                    {visibleColumns.email && (
-                                        <td>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Search email"
-                                                value={columnFilters.email}
-                                                onChange={(event) =>
-                                                    handleColumnFilterChange("email", event.target.value)
-                                                }
-                                            />
-                                        </td>
-                                    )}
-
-                                    {visibleColumns.address && (
-                                        <td>
-                                            <input
-                                                type="text"
-                                                className="form-control form-control-sm"
-                                                placeholder="Search address"
-                                                value={columnFilters.address}
-                                                onChange={(event) =>
-                                                    handleColumnFilterChange("address", event.target.value)
-                                                }
-                                            />
-                                        </td>
-                                    )}
-
-                                    {visibleColumns.actions && <td></td>}
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {loading ? (
-                                    <tr>
-                                        <td
-                                            colSpan={Object.values(visibleColumns).filter(Boolean).length + 1}
-                                            className="text-center"
-                                        >
-                                            Loading customers...
-                                        </td>
-                                    </tr>
-                                ) : paginatedData.length > 0 ? (
-                                    paginatedData.map((row) => (
-                                        <tr key={row.id}>
-                                            <td>
-                                                <input
-                                                    type="checkbox"
-                                                    className="form-check-input"
-                                                    checked={!!selectedRows[row.id]}
-                                                    onChange={() => handleSelectRow(row.id)}
-                                                />
-                                            </td>
-
-                                            {visibleColumns.full_name && <td>{row.full_name}</td>}
-                                            {visibleColumns.dni && <td>{row.dni}</td>}
-                                            {visibleColumns.driving_license && <td>{row.driving_license}</td>}
-                                            {visibleColumns.phone && <td>{row.phone}</td>}
-
-                                            {visibleColumns.vehicles_summary && (
-                                                <td>
-                                                    {row.vehicles.length > 0 ? (
-                                                        <div className="d-flex flex-column gap-1">
-                                                            {row.vehicles.map((vehicle) => (
-                                                                <span key={vehicle.id} className="badge text-bg-light border">
-                                                                    {vehicle.plate} · {vehicle.brand} {vehicle.model}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-muted">No vehicles</span>
-                                                    )}
-                                                </td>
-                                            )}
-
-                                            {visibleColumns.email && <td>{row.email || "-"}</td>}
-                                            {visibleColumns.address && <td>{row.address || "-"}</td>}
-
-                                            {visibleColumns.actions && (
-                                                <td className="text-center">
-                                                    <div className="d-flex justify-content-center align-items-center gap-2">
-                                                        <button
-                                                            className="action-icon-btn action-edit"
-                                                            onClick={() => handleOpenEditModal(row)}
-                                                            title="Edit customer"
-                                                        >
-                                                            <Pencil size={18} fill="currentColor" />
-                                                        </button>
-                                                        <button
-                                                            className="action-icon-btn action-delete"
-                                                            onClick={() => handleDeleteCustomer(row.id)}
-                                                            title="Deactivate customer"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td
-                                            colSpan={Object.values(visibleColumns).filter(Boolean).length + 1}
-                                            className="text-center"
-                                        >
-                                            No customers found.
-                                        </td>
-                                    </tr>
+                                  )
                                 )}
-                            </tbody>
-                        </table>
-                    </div>
+
+
+                              {customer.vehicles.length >
+                                2 && (
+
+                                <span className="small text-secondary">
+
+                                  +
+                                  {customer
+                                    .vehicles
+                                    .length -
+                                    2}{" "}
+                                  more
+
+                                </span>
+
+                              )}
+
+                            </div>
+
+                          ) : customer.vehicles_count >
+                            0 ? (
+
+                            <span className="small text-secondary">
+
+                              {
+                                customer.vehicles_count
+                              }{" "}
+                              vehicles
+
+                            </span>
+
+                          ) : (
+
+                            <span className="small text-secondary">
+                              No vehicles
+                            </span>
+
+                          )}
+
+                        </td>
+
+                      )}
+
+
+                      {/* ADDRESS */}
+
+                      {visibleColumns.address && (
+
+                        <td>
+
+                          <div className="d-flex align-items-start gap-2 small customer-address">
+
+                            <MapPin
+                              size={15}
+                              className="text-secondary flex-shrink-0 mt-1"
+                            />
+
+                            <span>
+
+                              {customer.address ||
+                                "No address"}
+
+                            </span>
+
+                          </div>
+
+                        </td>
+
+                      )}
+
+
+                      {/* ACTIONS */}
+
+                      <td className="text-end">
+
+                        <div className="d-inline-flex align-items-center gap-2">
+
+                          <button
+                            type="button"
+                            className="btn btn-sm customer-action-button customer-action-edit"
+                            title="Edit customer"
+                            aria-label={`Edit ${customer.full_name}`}
+                            onClick={() =>
+                              handleOpenEditModal(
+                                customer
+                              )
+                            }
+                          >
+
+                            <Pencil
+                              size={16}
+                            />
+
+                          </button>
+
+
+                          <button
+                            type="button"
+                            className="btn btn-sm customer-action-button customer-action-delete"
+                            title="Deactivate customer"
+                            aria-label={`Deactivate ${customer.full_name}`}
+                            disabled={
+                              deactivatingId ===
+                              customer.id
+                            }
+                            onClick={() =>
+                              handleDeactivateCustomer(
+                                customer
+                              )
+                            }
+                          >
+
+                            {deactivatingId ===
+                            customer.id ? (
+
+                              <span className="spinner-border spinner-border-sm" />
+
+                            ) : (
+
+                              <Trash2
+                                size={16}
+                              />
+
+                            )}
+
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  )
+                )
+
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+      {/* ===================================================
+          PAGINATION
+          =================================================== */}
+
+      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mt-3">
+
+        <div className="d-flex flex-wrap align-items-center gap-3">
+
+          <label className="d-flex align-items-center gap-2 small text-secondary">
+
+            Show
+
+            <select
+              className="form-select form-select-sm customer-record-select"
+              value={
+                recordsPerPage
+              }
+              onChange={(
+                event
+              ) => {
+
+                setRecordsPerPage(
+                  Number(
+                    event.target.value
+                  )
+                );
+
+                setCurrentPage(1);
+              }}
+            >
+
+              <option value={10}>
+                10
+              </option>
+
+              <option value={25}>
+                25
+              </option>
+
+              <option value={50}>
+                50
+              </option>
+
+              <option value={-1}>
+                All
+              </option>
+
+            </select>
+
+            records
+
+          </label>
+
+
+          <span className="small text-secondary">
+
+            Showing{" "}
+            {firstVisibleRecord}
+            –
+            {lastVisibleRecord}{" "}
+            of{" "}
+            {
+              filteredData.length
+            }
+
+          </span>
+
+        </div>
+
+
+        {recordsPerPage !==
+          -1 &&
+          totalPages > 1 && (
+
+          <nav aria-label="Customer pagination">
+
+            <ul className="pagination pagination-sm mb-0">
+
+              <li
+                className={`page-item ${
+                  currentPage === 1
+                    ? "disabled"
+                    : ""
+                }`}
+              >
+
+                <button
+                  type="button"
+                  className="page-link"
+                  disabled={
+                    currentPage === 1
+                  }
+                  onClick={() =>
+                    setCurrentPage(
+                      (current) =>
+                        Math.max(
+                          1,
+                          current - 1
+                        )
+                    )
+                  }
+                >
+
+                  Previous
+
+                </button>
+
+              </li>
+
+
+              {visiblePageNumbers.map(
+                (pageNumber) => (
+
+                  <li
+                    key={
+                      pageNumber
+                    }
+                    className={`page-item ${
+                      currentPage ===
+                      pageNumber
+                        ? "active"
+                        : ""
+                    }`}
+                  >
+
+                    <button
+                      type="button"
+                      className="page-link"
+                      onClick={() =>
+                        setCurrentPage(
+                          pageNumber
+                        )
+                      }
+                    >
+
+                      {
+                        pageNumber
+                      }
+
+                    </button>
+
+                  </li>
+
+                )
+              )}
+
+
+              <li
+                className={`page-item ${
+                  currentPage ===
+                  totalPages
+                    ? "disabled"
+                    : ""
+                }`}
+              >
+
+                <button
+                  type="button"
+                  className="page-link"
+                  disabled={
+                    currentPage ===
+                    totalPages
+                  }
+                  onClick={() =>
+                    setCurrentPage(
+                      (current) =>
+                        Math.min(
+                          totalPages,
+                          current + 1
+                        )
+                    )
+                  }
+                >
+
+                  Next
+
+                </button>
+
+              </li>
+
+            </ul>
+
+          </nav>
+
+        )}
+
+      </div>
+
+
+      {/* ===================================================
+          CUSTOMER MODAL
+          =================================================== */}
+
+      {showCustomerModal && (
+
+        <div
+          className="modal show d-block customer-modal-layer"
+          tabIndex="-1"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={
+            handleBackdropClick
+          }
+        >
+
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+
+            <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+
+
+              {/* HEADER */}
+
+              <div className="modal-header bg-dark text-white border-bottom border-warning border-3 p-4">
+
+                <div>
+
+                  <p className="small text-warning fw-bold text-uppercase mb-1">
+                    Customer details
+                  </p>
+
+                  <h2 className="modal-title h4 fw-bold mb-0">
+
+                    {editingCustomer
+                      ? "Edit customer"
+                      : "Add customer"}
+
+                  </h2>
+
                 </div>
 
-                {recordsPerPage !== -1 && (
-                    <div className="d-flex justify-content-between align-items-center mt-3 mb-3">
-                        <div className="text-muted-custom">
-                            {filteredData.length === 0
-                                ? "Showing 0 of 0 entries"
-                                : `Showing ${(currentPage - 1) * recordsPerPage + 1} of ${Math.min(
-                                    currentPage * recordsPerPage,
-                                    filteredData.length
-                                )} entries`}
-                        </div>
 
-                        <nav>
-                            <ul className="pagination pagination-sm mb-0">
-                                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                        disabled={currentPage === 1}
-                                    >
-                                        Previous
-                                    </button>
-                                </li>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  aria-label="Close"
+                  disabled={
+                    savingCustomer
+                  }
+                  onClick={
+                    handleCloseModal
+                  }
+                />
 
-                                {[...Array(totalPages)].map((_, index) => (
-                                    <li
-                                        key={index}
-                                        className={`page-item ${currentPage === index + 1 ? "active" : ""}`}
-                                    >
-                                        <button
-                                            className="page-link"
-                                            onClick={() => setCurrentPage(index + 1)}
-                                        >
-                                            {index + 1}
-                                        </button>
-                                    </li>
-                                ))}
+              </div>
 
-                                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() =>
-                                            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                                        }
-                                        disabled={currentPage === totalPages}
-                                    >
-                                        Next
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
-                    </div>
-                )}
 
-                {showAddModal && (
+              <form
+                onSubmit={
+                  handleSaveCustomer
+                }
+                noValidate
+              >
+
+                <div className="modal-body p-4">
+
+
+                  {modalError && (
+
                     <div
-                        className="modal show d-block"
-                        style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
-                        role="dialog"
+                      className="alert alert-danger"
+                      role="alert"
                     >
-                        <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
-                            <div className="modal-content border-0 shadow">
-                                <div
-                                    className="modal-header border-0"
-                                    style={{ backgroundColor: "var(--primary-orange)" }}
-                                >
-                                    <h5 className="modal-title m-0 fw-bold text-dark">
-                                        {editingCustomer ? "Edit Customer" : "Add New Customer"}
-                                    </h5>
 
-                                    <button
-                                        type="button"
-                                        className="btn-close text-dark"
-                                        onClick={handleCloseModal}
-                                        aria-label="Close"
-                                    ></button>
-                                </div>
+                      {
+                        modalError
+                      }
 
-                                <form onSubmit={handleSaveCustomer} noValidate>
-                                    <div className="modal-body p-4">
-                                        <div className="row">
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label fw-semibold">First Name</label>
-                                                <input
-                                                    type="text"
-                                                    name="first_name"
-                                                    className={`form-control ${formErrors.first_name ? "is-invalid" : ""}`}
-                                                    value={newCustomer.first_name}
-                                                    onChange={handleInputChange}
-                                                />
-                                                {formErrors.first_name && (
-                                                    <div className="invalid-feedback">
-                                                        {formErrors.first_name}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label fw-semibold">Last Name</label>
-                                                <input
-                                                    type="text"
-                                                    name="last_name"
-                                                    className={`form-control ${formErrors.last_name ? "is-invalid" : ""}`}
-                                                    value={newCustomer.last_name}
-                                                    onChange={handleInputChange}
-
-                                                />
-                                                {formErrors.last_name && (
-                                                    <div className="invalid-feedback">
-                                                        {formErrors.last_name}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="row">
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label fw-semibold">DNI / NIE</label>
-                                                <input
-                                                    type="text"
-                                                    name="dni"
-                                                    className={`form-control text-uppercase ${formErrors.dni ? "is-invalid" : ""
-                                                        }`}
-                                                    placeholder="12345678Z or X1234567L"
-                                                    maxLength={9}
-                                                    value={newCustomer.dni}
-                                                    onChange={handleInputChange}
-                                                />
-
-                                                {formErrors.dni && (
-                                                    <div className="invalid-feedback">
-                                                        {formErrors.dni}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label fw-semibold">
-                                                    Driving License
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="driving_license"
-                                                    className="form-control"
-                                                    value={newCustomer.driving_license}
-                                                    onChange={handleInputChange}
-
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="mb-3">
-                                            <label className="form-label fw-semibold">Phone</label>
-                                            <input
-                                                type="tel"
-                                                name="phone"
-                                                className={`form-control ${formErrors.phone ? "is-invalid" : ""
-                                                    }`}
-                                                value={newCustomer.phone}
-                                                onChange={handleInputChange}
-                                            />
-
-                                            {formErrors.phone && (
-                                                <div className="invalid-feedback">
-                                                    {formErrors.phone}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="mb-3">
-                                            <label className="form-label fw-semibold">Email</label>
-                                            <input
-                                                type="email"
-                                                name="email"
-                                                className="form-control"
-                                                value={newCustomer.email}
-                                                onChange={handleInputChange}
-                                            />
-                                        </div>
-
-                                        <div className="mb-3">
-                                            <label className="form-label fw-semibold">Address</label>
-                                            <input
-                                                type="text"
-                                                name="address"
-                                                className="form-control"
-                                                value={newCustomer.address}
-                                                onChange={handleInputChange}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="modal-footer bg-light border-0">
-                                        <button
-                                            type="button"
-                                            className="btn btn-dark"
-                                            onClick={handleCloseModal}
-                                        >
-                                            Cancel
-                                        </button>
-
-                                        <button
-                                            type="submit"
-                                            className="btn btn-save-customer fw-bold"
-                                        >
-                                            {editingCustomer ? "Save Changes" : "Save Customer"}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
                     </div>
-                )}
+
+                  )}
+
+
+                  <div className="row g-3">
+
+
+                    {/* FIRST NAME */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        className="form-label fw-semibold"
+                        htmlFor="customer-first-name"
+                      >
+                        First name *
+                      </label>
+
+                      <input
+                        id="customer-first-name"
+                        type="text"
+                        name="first_name"
+                        className={`form-control ${
+                          formErrors.first_name
+                            ? "is-invalid"
+                            : ""
+                        }`}
+                        value={
+                          customerForm.first_name
+                        }
+                        disabled={
+                          savingCustomer
+                        }
+                        onChange={
+                          handleInputChange
+                        }
+                      />
+
+
+                      {formErrors.first_name && (
+
+                        <div className="invalid-feedback">
+
+                          {
+                            formErrors.first_name
+                          }
+
+                        </div>
+
+                      )}
+
+                    </div>
+
+
+                    {/* LAST NAME */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        className="form-label fw-semibold"
+                        htmlFor="customer-last-name"
+                      >
+                        Last name *
+                      </label>
+
+                      <input
+                        id="customer-last-name"
+                        type="text"
+                        name="last_name"
+                        className={`form-control ${
+                          formErrors.last_name
+                            ? "is-invalid"
+                            : ""
+                        }`}
+                        value={
+                          customerForm.last_name
+                        }
+                        disabled={
+                          savingCustomer
+                        }
+                        onChange={
+                          handleInputChange
+                        }
+                      />
+
+
+                      {formErrors.last_name && (
+
+                        <div className="invalid-feedback">
+
+                          {
+                            formErrors.last_name
+                          }
+
+                        </div>
+
+                      )}
+
+                    </div>
+
+
+                    {/* DNI */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        className="form-label fw-semibold"
+                        htmlFor="customer-dni"
+                      >
+                        DNI / NIE
+                      </label>
+
+                      <input
+                        id="customer-dni"
+                        type="text"
+                        name="dni"
+                        maxLength={9}
+                        placeholder="12345678Z or X1234567L"
+                        className={`form-control text-uppercase ${
+                          formErrors.dni
+                            ? "is-invalid"
+                            : ""
+                        }`}
+                        value={
+                          customerForm.dni
+                        }
+                        disabled={
+                          savingCustomer
+                        }
+                        onChange={
+                          handleInputChange
+                        }
+                      />
+
+
+                      {formErrors.dni && (
+
+                        <div className="invalid-feedback">
+
+                          {
+                            formErrors.dni
+                          }
+
+                        </div>
+
+                      )}
+
+                    </div>
+
+
+                    {/* DRIVING LICENCE */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        className="form-label fw-semibold"
+                        htmlFor="customer-driving-license"
+                      >
+                        Driving licence
+                      </label>
+
+                      <input
+                        id="customer-driving-license"
+                        type="text"
+                        name="driving_license"
+                        className="form-control"
+                        value={
+                          customerForm.driving_license
+                        }
+                        disabled={
+                          savingCustomer
+                        }
+                        onChange={
+                          handleInputChange
+                        }
+                      />
+
+                    </div>
+
+
+                    {/* PHONE */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        className="form-label fw-semibold"
+                        htmlFor="customer-phone"
+                      >
+                        Phone *
+                      </label>
+
+                      <input
+                        id="customer-phone"
+                        type="tel"
+                        name="phone"
+                        className={`form-control ${
+                          formErrors.phone
+                            ? "is-invalid"
+                            : ""
+                        }`}
+                        value={
+                          customerForm.phone
+                        }
+                        disabled={
+                          savingCustomer
+                        }
+                        onChange={
+                          handleInputChange
+                        }
+                      />
+
+
+                      {formErrors.phone && (
+
+                        <div className="invalid-feedback">
+
+                          {
+                            formErrors.phone
+                          }
+
+                        </div>
+
+                      )}
+
+                    </div>
+
+
+                    {/* EMAIL */}
+
+                    <div className="col-12 col-md-6">
+
+                      <label
+                        className="form-label fw-semibold"
+                        htmlFor="customer-email"
+                      >
+                        Email
+                      </label>
+
+                      <input
+                        id="customer-email"
+                        type="email"
+                        name="email"
+                        className="form-control"
+                        value={
+                          customerForm.email
+                        }
+                        disabled={
+                          savingCustomer
+                        }
+                        onChange={
+                          handleInputChange
+                        }
+                      />
+
+                    </div>
+
+
+                    {/* ADDRESS */}
+
+                    <div className="col-12">
+
+                      <label
+                        className="form-label fw-semibold"
+                        htmlFor="customer-address"
+                      >
+                        Address
+                      </label>
+
+                      <input
+                        id="customer-address"
+                        type="text"
+                        name="address"
+                        className="form-control"
+                        value={
+                          customerForm.address
+                        }
+                        disabled={
+                          savingCustomer
+                        }
+                        onChange={
+                          handleInputChange
+                        }
+                      />
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+                {/* FOOTER */}
+
+                <div className="modal-footer bg-light border-0 px-4 py-3">
+
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    disabled={
+                      savingCustomer
+                    }
+                    onClick={
+                      handleCloseModal
+                    }
+                  >
+
+                    Cancel
+
+                  </button>
+
+
+                  <button
+                    type="submit"
+                    className="btn btn-warning fw-bold px-4"
+                    disabled={
+                      savingCustomer
+                    }
+                  >
+
+                    {savingCustomer ? (
+
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" />
+
+                        Saving...
+                      </>
+
+                    ) : editingCustomer ? (
+
+                      "Save changes"
+
+                    ) : (
+
+                      "Save customer"
+
+                    )}
+
+                  </button>
+
+                </div>
+
+              </form>
+
             </div>
-        </>
-    );
+
+          </div>
+
+        </div>
+
+      )}
+
+    </section>
+  );
 }

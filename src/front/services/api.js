@@ -1,4 +1,6 @@
+// =========================================================
 // 1. BACKEND URL CONFIGURATION
+// =========================================================
 
 const DEFAULT_BACKEND_URL = "http://127.0.0.1:3001";
 
@@ -15,7 +17,9 @@ const API_BASE_URL =
     : `${cleanBackendUrl}/api`;
 
 
+// =========================================================
 // 2. FUNCTION TO READ PUBLIC RESPONSES
+// =========================================================
 
 async function parseResponse(response) {
   const data =
@@ -29,7 +33,9 @@ async function parseResponse(response) {
 }
 
 
+// =========================================================
 // 3. WORKSHOP REGISTRATION
+// =========================================================
 
 export async function registerWorkshop(payload) {
   const response = await fetch(
@@ -49,7 +55,9 @@ export async function registerWorkshop(payload) {
 }
 
 
+// =========================================================
 // 4. USER LOGIN
+// =========================================================
 
 export async function loginUser(
   email,
@@ -75,7 +83,9 @@ export async function loginUser(
 }
 
 
+// =========================================================
 // 5. FORGOT PASSWORD
+// =========================================================
 
 export async function forgotPassword(email) {
   const response = await fetch(
@@ -97,7 +107,9 @@ export async function forgotPassword(email) {
 }
 
 
+// =========================================================
 // 6. RESET PASSWORD
+// =========================================================
 
 export async function resetPassword(
   token,
@@ -125,7 +137,9 @@ export async function resetPassword(
 }
 
 
+// =========================================================
 // 7. REQUESTS TO PROTECTED ENDPOINTS
+// =========================================================
 
 export async function apiFetch(
   path,
@@ -151,6 +165,7 @@ export async function apiFetch(
     {
       method: method,
       headers: headers,
+
       body:
         body !== undefined
           ? JSON.stringify(body)
@@ -165,6 +180,7 @@ export async function apiFetch(
     const errorMessage =
       data.error ||
       data.message ||
+      data.msg ||
       `HTTP ${response.status}`;
 
     throw new Error(errorMessage);
@@ -174,7 +190,55 @@ export async function apiFetch(
 }
 
 
-// 8. SERVICE STATUS HISTORY
+// =========================================================
+// 8. CUSTOMERS
+// =========================================================
+
+export async function getCustomers() {
+  return await apiFetch("/customers");
+}
+
+
+export async function createCustomer(payload) {
+  return await apiFetch(
+    "/customers",
+    {
+      method: "POST",
+      body: payload,
+    }
+  );
+}
+
+
+export async function updateCustomer(
+  customerId,
+  payload
+) {
+  return await apiFetch(
+    `/customers/${customerId}`,
+    {
+      method: "PUT",
+      body: payload,
+    }
+  );
+}
+
+
+export async function deactivateCustomer(
+  customerId
+) {
+  return await apiFetch(
+    `/customers/${customerId}`,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
+
+// =========================================================
+// 9. SERVICE STATUS HISTORY
+// =========================================================
 
 export async function getServiceStatusLogs(
   serviceId
@@ -185,7 +249,9 @@ export async function getServiceStatusLogs(
 }
 
 
-// 9. UPDATE A SERVICE COMMENT
+// =========================================================
+// 10. UPDATE A SERVICE COMMENT
+// =========================================================
 
 export async function updateServiceComment(
   serviceId,
@@ -202,7 +268,9 @@ export async function updateServiceComment(
 }
 
 
-// 10. DELETE A SERVICE COMMENT
+// =========================================================
+// 11. DELETE A SERVICE COMMENT
+// =========================================================
 
 export async function deleteServiceComment(
   serviceId,
@@ -217,7 +285,9 @@ export async function deleteServiceComment(
 }
 
 
-// 11. CANCEL A SERVICE
+// =========================================================
+// 12. CANCEL A SERVICE
+// =========================================================
 
 export async function cancelService(
   serviceId,
@@ -236,7 +306,9 @@ export async function cancelService(
 }
 
 
-// 12. PERMANENTLY DELETE A SERVICE
+// =========================================================
+// 13. PERMANENTLY DELETE A SERVICE
+// =========================================================
 
 export async function permanentlyDeleteService(
   serviceId
