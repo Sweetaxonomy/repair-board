@@ -1,7 +1,7 @@
-import { useState } from "react";
 import {
   Link,
   NavLink,
+  useLocation,
   useNavigate,
 } from "react-router-dom";
 
@@ -9,10 +9,22 @@ import logoTaller from "../assets/img/logoTaller.png";
 
 export const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() =>
-    Boolean(localStorage.getItem("token"))
+  const isAuthenticated = Boolean(
+    localStorage.getItem("token")
   );
+
+  const currentPath = location.pathname;
+
+  const isHome = currentPath === "/";
+  const isLogin = currentPath === "/login";
+  const isRegister = currentPath === "/register";
+
+  const isDashboardArea =
+    currentPath === "/dashboard" ||
+    currentPath.startsWith("/admin") ||
+    currentPath.startsWith("/mechanic");
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -20,8 +32,9 @@ export const Navbar = () => {
     localStorage.removeItem("employee");
     localStorage.removeItem("workshop");
 
-    setIsAuthenticated(false);
-    navigate("/login", { replace: true });
+    navigate("/login", {
+      replace: true,
+    });
   };
 
   return (
@@ -30,6 +43,7 @@ export const Navbar = () => {
         <Link
           className="navbar-brand d-flex align-items-center"
           to="/"
+          aria-label="Go to home"
         >
           <img
             src={logoTaller}
@@ -56,25 +70,29 @@ export const Navbar = () => {
           id="mainNavbar"
         >
           <ul className="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-lg-2">
-            <li className="nav-item">
-              <NavLink
-                className="nav-link fw-semibold"
-                to="/"
-              >
-                Home
-              </NavLink>
-            </li>
+            {!isHome && (
+              <li className="nav-item">
+                <NavLink
+                  className="nav-link fw-semibold"
+                  to="/"
+                >
+                  Home
+                </NavLink>
+              </li>
+            )}
 
             {isAuthenticated ? (
               <>
-                <li className="nav-item">
-                  <NavLink
-                    className="nav-link fw-semibold"
-                    to="/dashboard"
-                  >
-                    Dashboard
-                  </NavLink>
-                </li>
+                {!isDashboardArea && (
+                  <li className="nav-item">
+                    <NavLink
+                      className="nav-link fw-semibold"
+                      to="/dashboard"
+                    >
+                      Dashboard
+                    </NavLink>
+                  </li>
+                )}
 
                 <li className="nav-item">
                   <button
@@ -88,23 +106,27 @@ export const Navbar = () => {
               </>
             ) : (
               <>
-                <li className="nav-item">
-                  <NavLink
-                    className="nav-link fw-semibold"
-                    to="/login"
-                  >
-                    Login
-                  </NavLink>
-                </li>
+                {!isLogin && (
+                  <li className="nav-item">
+                    <NavLink
+                      className="nav-link fw-semibold"
+                      to="/login"
+                    >
+                      Login
+                    </NavLink>
+                  </li>
+                )}
 
-                <li className="nav-item">
-                  <NavLink
-                    className="btn btn-warning fw-bold px-3"
-                    to="/register"
-                  >
-                    Register
-                  </NavLink>
-                </li>
+                {!isRegister && (
+                  <li className="nav-item">
+                    <NavLink
+                      className="btn btn-warning fw-bold px-3"
+                      to="/register"
+                    >
+                      Register
+                    </NavLink>
+                  </li>
+                )}
               </>
             )}
           </ul>

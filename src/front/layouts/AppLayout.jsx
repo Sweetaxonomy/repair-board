@@ -8,7 +8,7 @@ export const AppLayout = () => {
     <div className="d-flex flex-column min-vh-100">
       <Navbar />
 
-      <main className="flex-grow-1">
+      <main className="d-flex flex-column flex-grow-1">
         <Outlet />
       </main>
 
