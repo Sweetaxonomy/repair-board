@@ -1,200 +1,607 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+
 import {
-  Wrench,
+  ArrowRight,
+  CarFront,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
-  Users,
   History,
   LogIn,
-  CarFront
+  ShieldCheck,
+  Users,
 } from "lucide-react";
-import "./Home.css"; 
 
+import "./Home.css";
 
 import carImg from "../assets/img/Car.png";
 import car2Img from "../assets/img/car2.png";
 import insideImg from "../assets/img/inside.png";
 import mechanicImg from "../assets/img/mechanic.png";
-import mechanicThumbsImg from "../assets/img/mechanic-thumbs.png"
+import mechanicThumbsImg from "../assets/img/mechanic-thumbs.png";
 
-const features = [
+
+const heroImages = [
   {
+    src: carImg,
+    alt: "Vehicle inside a mechanic workshop",
+  },
+  {
+    src: car2Img,
+    alt: "Vehicle inside a professional workshop",
+  },
+  {
+    src: insideImg,
+    alt: "Interior of a mechanic workshop",
+  },
+  {
+    src: mechanicImg,
+    alt: "Mechanic working on a vehicle",
+  },
+];
+
+
+const capabilities = [
+  {
+    number: "01",
     Icon: ClipboardList,
-    title: "Schedule Services",
-    text: "License plate, model, customer, status and priority for every vehicle.",
+    title: "Service management",
+    text: "Create service tickets and keep vehicle, customer, status and priority information connected throughout the repair.",
   },
   {
-    Icon: History,
-    title: "Preventive maintenance",
-    text: "Keep a clear record of every service performed in your workshop.",
-  },
-  {
+    number: "02",
     Icon: CarFront,
-    title: "Repair tracking",
-    text: "Follow each vehicle from check-in to diagnosis, repair and delivery.",
+    title: "Customers & vehicles",
+    text: "Keep every vehicle connected to its owner and make the information your workshop needs easy to find.",
   },
   {
+    number: "03",
     Icon: Users,
-    title: "Separated roles",
-    text: "Admins manage the workshop, mechanics focus only on their assigned tasks.",
-  }
+    title: "Team & assignments",
+    text: "Admins organize the workshop while mechanics focus on the services and repairs assigned to them.",
+  },
+  {
+    number: "04",
+    Icon: History,
+    title: "Service history",
+    text: "Status changes, comments, images and important workshop updates remain attached to each service.",
+  },
 ];
 
-const checklist = [
-  "Create an admin account for your workshop.",
-  "Register mechanics and give them access.",
-  "Prepare the base for future repair tracking.",
-  "Assign specific tasks to your staff."
+
+const workflow = [
+  {
+    number: "01",
+    title: "Create",
+    text: "Register the customer, vehicle and repair information.",
+  },
+  {
+    number: "02",
+    title: "Assign",
+    text: "Give the service to the right mechanic.",
+  },
+  {
+    number: "03",
+    title: "Follow",
+    text: "Track the repair as it moves through the workshop.",
+  },
+  {
+    number: "04",
+    title: "Deliver",
+    text: "Complete the service while keeping its history available.",
+  },
 ];
+
 
 export const Home = () => {
- 
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const handleMouseMove = (e) => {
-    const { innerWidth, innerHeight } = window;
-    const moveX = (e.clientX / innerWidth - 0.5) * 20;
-    const moveY = (e.clientY / innerHeight - 0.5) * 20;
-    setOffset({ x: moveX, y: moveY });
-  };
-
-  const handleMouseLeave = () => {
-    setOffset({ x: 0, y: 0 });
-  };
+  const isAuthenticated =
+    Boolean(localStorage.getItem("token"));
 
   return (
-    <div className="container-fluid p-0">
-      <section 
-        className="hero-section position-relative overflow-hidden"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      >
-        <div id="heroCarousel" className="carousel slide carousel-fade position-absolute w-100 h-100" data-bs-ride="carousel" data-bs-interval="4000">
-          <div className="carousel-inner w-100 h-100"
-            style={{
-              transform: `scale(1.05) translate(${offset.x}px, ${offset.y}px)`,
-              transition: "transform 0.3s ease-out" 
-            }}
-          >
-            <div className="carousel-item active w-100 h-100">
-              <img src={carImg} className="d-block w-100 h-100 object-fit-cover overlay-img" alt="Car" />
-            </div>
-            <div className="carousel-item w-100 h-100">
-              <img src={car2Img} className="d-block w-100 h-100 object-fit-cover overlay-img" alt="Car 2" />
-            </div>
-            <div className="carousel-item w-100 h-100">
-              <img src={insideImg} className="d-block w-100 h-100 object-fit-cover overlay-img" alt="Inside" />
-            </div>
-            <div className="carousel-item w-100 h-100">
-              <img src={mechanicImg} className="d-block w-100 h-100 object-fit-cover overlay-img" alt="Mechanic" />
-            </div>
-          </div>
-        </div>
+    <div className="home-page">
 
-        <div className="container py-5 position-relative z-1 hero-content d-flex align-items-center">
-          <div className="row w-100">
-            <div className="col-lg-8">
-              <span className="badge bg-warning text-dark mb-3 d-inline-flex align-items-center gap-2">
-                <Wrench size={16} />
-                Workshop management app
-              </span>
+      {/* =====================================================
+          HERO
+          ===================================================== */}
 
-              <h1 className="display-4 fw-bold text-light">
-                Manage your mechanic workshop <br />
-                <span className="text-warning">without losing control</span>
-              </h1>
+      <section className="home-hero position-relative overflow-hidden bg-dark">
 
-              <p className="lead mt-3 text-light opacity-75">
-                Register your workshop, create mechanic accounts and keep your team organized from one simple platform.
-              </p>
+        {/* Carousel */}
 
-              <div className="d-flex gap-3 mt-4 flex-wrap">
-                <Link to="/register" className="btn btn-warning btn-lg fw-bold d-inline-flex align-items-center gap-2">
-                  <Wrench size={20} />
-                  Register my workshop
-                </Link>
+        <div
+          id="homeHeroCarousel"
+          className="carousel slide carousel-fade position-absolute top-0 start-0 w-100 h-100"
+          data-bs-ride="carousel"
+          data-bs-interval="4000"
+          data-bs-pause="false"
+          data-bs-touch="true"
+        >
+          <div className="carousel-inner h-100">
 
-                <Link to="/login" className="btn btn-outline-light btn-lg d-inline-flex align-items-center gap-2">
-                  <LogIn size={20} />
-                  Sign in
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white text-dark py-5">
-        <div className="container text-center">
-          <div className="d-flex justify-content-center mb-3">
-            <div className="featured-title-wrapper">
-              <h2 className="fw-bold mb-0 featured-title">FEATURED SERVICES</h2>
-            </div>
-          </div>
-          
-          <p className="text-muted mb-2">
-            We offer great vehicle services for our customers round the clock.
-          </p>
-
-          <div className="row g-4 mt-2">
-            {features.map((feature, index) => (
-              <div className="col-md-6 col-lg-3" key={index}>
-                <div className="feature-item p-3">
-                  <div className="mb-4 text-warning">
-                    <feature.Icon size={55} strokeWidth={1.5} />
-                  </div>
-                  <h5 className="fw-bold fs-6">{feature.title}</h5>
-                  <p className="text-muted small lh-lg px-2">{feature.text}</p>
-                </div>
+            {heroImages.map((image, index) => (
+              <div
+                key={image.src}
+                className={`carousel-item h-100 ${
+                  index === 0 ? "active" : ""
+                }`}
+              >
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  className="d-block w-100 h-100 home-hero-image"
+                />
               </div>
             ))}
+
           </div>
         </div>
-      </section>
 
-      <section className="gradient-info-section position-relative overflow-hidden">
-        <div className="container pt-5">
-          <div className="row align-items-center">
-            
-            <div className="col-md-5 d-none d-md-flex align-items-end justify-content-center h-100 mt-auto">
-              <img 
-                src={mechanicThumbsImg}
-                alt="Mechanic Thumbs Up" 
-                className="img-fluid mechanic-hero-img" 
-              />
-            </div>
-            
-            <div className="col-md-7 py-5">
-              <div className="d-flex justify-content-start mb-3">
-                <div className="care-support-title-wrapper shadow-sm">
-                  <h3 className="fw-bold mb-0 care-support-title">WHAT CAN YOU DO?</h3>
-                </div>
-              </div>
-              
-              <p className="text-white fw-semibold mb-5 fs-5">
-                High quality and professional services
+
+        {/* Dark overlay */}
+
+        <div className="home-hero-overlay position-absolute top-0 start-0 w-100 h-100" />
+
+
+        {/* Hero content */}
+
+        <div className="container position-relative home-hero-content">
+
+          <div className="row align-items-center home-hero-inner">
+
+            <div className="col-12 col-lg-7 col-xl-6 offset-xl-1">
+
+              <h1 className="fw-bold text-white mb-4 home-hero-title">
+                Keep every repair
+
+                <span className="d-block text-warning">
+                  under control.
+                </span>
+              </h1>
+
+
+              <p className="text-white-50 mb-4 home-hero-description">
+                A clearer way to manage services,
+                customers, vehicles and your workshop
+                team from one organized platform.
               </p>
 
-              <div className="row g-4">
-                {checklist.map((item, index) => (
-                  <div className="col-md-6" key={index}>
-                    <div className="d-flex align-items-start gap-3">
-                      <span className="support-number fw-bold text-warning bg-white d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm">
-                        {index + 1}
-                      </span>
-                      <div>
-                        <h6 className="fw-bold text-white opacity-75 mb-1">
-                          {item.split('.')[0]}.
-                        </h6>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+
+              <div className="d-flex flex-column flex-sm-row gap-3">
+
+                {isAuthenticated ? (
+
+                  <Link
+                    to="/dashboard"
+                    className="btn btn-warning btn-lg fw-bold px-4 py-3 d-inline-flex align-items-center justify-content-center gap-2"
+                  >
+                    Open dashboard
+
+                    <ArrowRight size={19} />
+                  </Link>
+
+                ) : (
+
+                  <>
+                    <Link
+                      to="/register"
+                      className="btn btn-warning btn-lg fw-bold px-4 py-3 d-inline-flex align-items-center justify-content-center gap-2"
+                    >
+                      Start your workshop
+
+                      <ArrowRight size={19} />
+                    </Link>
+
+
+                    <Link
+                      to="/login"
+                      className="btn btn-outline-light btn-lg fw-semibold px-4 py-3 d-inline-flex align-items-center justify-content-center gap-2"
+                    >
+                      <LogIn size={19} />
+
+                      Sign in
+                    </Link>
+                  </>
+
+                )}
+
               </div>
+
             </div>
+
           </div>
+
         </div>
+
+
+        {/* Discreet carousel controls */}
+
+        <div className="home-carousel-controls position-absolute d-flex gap-2">
+
+          <button
+            type="button"
+            className="btn btn-outline-light d-flex align-items-center justify-content-center"
+            data-bs-target="#homeHeroCarousel"
+            data-bs-slide="prev"
+            aria-label="Previous image"
+          >
+            <ChevronLeft size={20} />
+          </button>
+
+
+          <button
+            type="button"
+            className="btn btn-outline-light d-flex align-items-center justify-content-center"
+            data-bs-target="#homeHeroCarousel"
+            data-bs-slide="next"
+            aria-label="Next image"
+          >
+            <ChevronRight size={20} />
+          </button>
+
+        </div>
+
       </section>
+
+
+      {/* =====================================================
+          CAPABILITIES
+          ===================================================== */}
+
+      <section className="bg-white py-5">
+
+        <div className="container py-4 py-lg-5">
+
+          {/* Centered section heading */}
+
+          <div className="row justify-content-center text-center mb-5 pb-lg-4">
+
+            <div className="col-12 col-lg-9 col-xl-8">
+
+              <div className="d-flex align-items-center justify-content-center gap-3 mb-4">
+
+                <span className="home-section-line" />
+
+                <p className="home-section-index fw-bold text-uppercase mb-0">
+                  <span>01</span>
+                  Workshop management
+                </p>
+
+                <span className="home-section-line" />
+
+              </div>
+
+
+              <h2 className="display-4 fw-bold mb-3 home-section-title">
+                Everything your workshop needs.
+              </h2>
+
+
+              <p className="display-6 text-secondary fw-light mb-4">
+                Nothing it doesn&apos;t.
+              </p>
+
+
+              <p className="fs-5 text-secondary mx-auto mb-0 home-section-description">
+                Keep the information behind every repair
+                organized without adding unnecessary
+                complexity to the daily work of your team.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* Editorial feature rows */}
+
+          <div className="border-top border-dark">
+
+            {capabilities.map((capability) => {
+              const Icon = capability.Icon;
+
+              return (
+                <article
+                  className="home-capability-row border-bottom py-4 py-lg-5"
+                  key={capability.number}
+                >
+
+                  <div className="row align-items-center g-4">
+
+                    <div className="col-3 col-md-2 col-lg-1">
+
+                      <span className="home-capability-number fw-bold">
+                        {capability.number}
+                      </span>
+
+                    </div>
+
+
+                    <div className="col-9 col-md-4 col-lg-4">
+
+                      <div className="d-flex align-items-center gap-3">
+
+                        <Icon
+                          size={28}
+                          strokeWidth={1.7}
+                          className="text-warning flex-shrink-0"
+                        />
+
+                        <h3 className="h3 fw-bold mb-0">
+                          {capability.title}
+                        </h3>
+
+                      </div>
+
+                    </div>
+
+
+                    <div className="col-12 col-md-6 col-lg-5 offset-lg-2">
+
+                      <p className="text-secondary fs-5 mb-0">
+                        {capability.text}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                </article>
+              );
+            })}
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          WORKFLOW
+          ===================================================== */}
+
+      <section className="home-workflow overflow-hidden text-white">
+
+        <div className="container">
+
+          <div className="row align-items-stretch">
+
+            {/* Large mechanic */}
+
+            <div className="col-12 col-lg-6 position-relative d-none d-lg-flex align-items-end justify-content-center home-mechanic-side">
+
+              <img
+                src={mechanicThumbsImg}
+                alt="Mechanic giving a thumbs up"
+                className="home-mechanic-image"
+              />
+
+            </div>
+
+
+            {/* Workflow */}
+
+            <div className="col-12 col-lg-6 py-5">
+
+              <div className="py-4 py-lg-5 ps-lg-4">
+
+                <div className="d-flex align-items-center gap-3 mb-4">
+
+                  <span className="home-workflow-line" />
+
+                  <p className="home-section-index home-section-index-light fw-bold text-uppercase mb-0">
+                    <span>02</span>
+                    A clear workflow
+                  </p>
+
+                </div>
+
+
+                <h2 className="display-4 fw-bold mb-4">
+                  From arrival
+
+                  <span className="d-block text-warning">
+                    to delivery.
+                  </span>
+                </h2>
+
+
+                <p className="text-white-50 fs-5 mb-5 home-workflow-intro">
+                  Every service follows a clear process,
+                  making it easier for the whole workshop
+                  to understand what happens next.
+                </p>
+
+
+                <div className="border-top border-secondary">
+
+                  {workflow.map((step) => (
+
+                    <div
+                      className="row align-items-center g-3 py-4 border-bottom border-secondary home-workflow-row"
+                      key={step.number}
+                    >
+
+                      <div className="col-2">
+
+                        <span className="text-warning fw-bold">
+                          {step.number}
+                        </span>
+
+                      </div>
+
+
+                      <div className="col-3">
+
+                        <h3 className="h4 fw-bold mb-0">
+                          {step.title}
+                        </h3>
+
+                      </div>
+
+
+                      <div className="col-7">
+
+                        <p className="text-white-50 mb-0">
+                          {step.text}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  ))}
+
+                </div>
+
+
+                <div className="mt-5">
+
+                  {isAuthenticated ? (
+
+                    <Link
+                      to="/dashboard"
+                      className="btn btn-warning btn-lg fw-bold px-4 py-3 d-inline-flex align-items-center gap-2"
+                    >
+                      Open dashboard
+
+                      <ArrowRight size={18} />
+                    </Link>
+
+                  ) : (
+
+                    <Link
+                      to="/register"
+                      className="btn btn-warning btn-lg fw-bold px-4 py-3 d-inline-flex align-items-center gap-2"
+                    >
+                      Create your workshop
+
+                      <ArrowRight size={18} />
+                    </Link>
+
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          PRODUCT STATEMENT
+          ===================================================== */}
+
+      <section className="bg-white py-5">
+
+        <div className="container py-lg-4">
+
+          <div className="row align-items-center g-4">
+
+            <div className="col-lg-3">
+
+              <div className="d-flex align-items-center gap-3">
+
+                <ShieldCheck
+                  size={38}
+                  strokeWidth={1.6}
+                  className="text-warning"
+                />
+
+                <span className="fw-bold text-uppercase small">
+                  Built around
+                  <br />
+                  clear roles
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <div className="col-lg-8 offset-lg-1">
+
+              <p className="h3 fw-normal mb-0 home-product-statement">
+                Admins keep control of the workshop.
+                Mechanics see the work that matters to them.
+
+                <span className="fw-bold">
+                  {" "}Everyone works from the same information.
+                </span>
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          CTA
+          ===================================================== */}
+
+      <section className="bg-warning py-5">
+
+        <div className="container py-3 py-lg-4">
+
+          <div className="row align-items-center g-4">
+
+            <div className="col-lg-8">
+
+              <p className="small fw-bold text-uppercase mb-2">
+                Workshop Manager
+              </p>
+
+              <h2 className="display-5 fw-bold mb-0">
+                Ready to bring order to your workshop?
+              </h2>
+
+            </div>
+
+
+            <div className="col-lg-4 text-lg-end">
+
+              {isAuthenticated ? (
+
+                <Link
+                  to="/dashboard"
+                  className="btn btn-dark btn-lg fw-bold px-4 py-3 d-inline-flex align-items-center gap-2"
+                >
+                  Open dashboard
+
+                  <ArrowRight size={18} />
+                </Link>
+
+              ) : (
+
+                <Link
+                  to="/register"
+                  className="btn btn-dark btn-lg fw-bold px-4 py-3 d-inline-flex align-items-center gap-2"
+                >
+                  Create your workshop
+
+                  <ArrowRight size={18} />
+                </Link>
+
+              )}
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
     </div>
   );
 };
