@@ -1,169 +1,381 @@
-.app-vehicle-container {
-    --primary-orange: #ffb800; 
-    --hover-orange: #e0a100;
-    background-color: #f8f9fa;
-    font-family: system-ui, -apple-system, sans-serif;
-    min-height: calc(100vh - 56px);
-    padding-bottom: 2rem;
+/* =========================================================
+   VEHICLE PAGE
+   ========================================================= */
+
+.vehicle-page {
+  width: 100%;
 }
 
-.header-title {
-    color: #333333;
-    font-weight: 700;
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.vehicle-page-icon {
+  width: 46px;
+  height: 46px;
 }
 
-.modal-header {
-    font-weight: 700;
-    background-color: #ffc107;
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
+.vehicle-dropdown-menu {
+  z-index: 1060;
+  min-width: 220px;
 }
 
-.modal-content.vehicle-modal-content {
-    border: 1px solid #dee2e6;
-    border-top: 6px solid var(--primary-orange);
-    border-radius: 8px;
+.vehicle-column-option {
+  cursor: pointer;
 }
 
-.btn-yellow {
-    background-color: #ffc107;
-    color: #000000; 
+
+/* =========================================================
+   ADVANCED FILTERS
+   ========================================================= */
+
+.vehicle-filter-panel {
+  border-left: 4px solid #ffc107 !important;
 }
 
-.btn-yellow:hover {
-    background-color: #e0a100;
-    color: #ffffff;
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.vehicle-table {
+  min-width: 850px;
 }
 
-.btn-save-vehicle {
-    background-color: #ffc107;
-    color: #000000; 
+
+.vehicle-table thead th {
+  background-color: #f8f9fa;
+
+  color: #495057;
+
+  font-size: 0.78rem;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  padding: 0.9rem 1rem;
+
+  border-bottom: 1px solid #dee2e6;
+
+  white-space: nowrap;
 }
 
-.btn-save-vehicle:hover {
-    background-color: #e0a100;
-    color: #ffffff;
+
+.vehicle-table tbody td {
+  padding: 1rem;
+
+  border-color: #edf0f2;
 }
 
-.btn-orange {
-    background-color: var(--primary-orange);
-    color: #000000;
-    border: none;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+
+.vehicle-table tbody tr {
+  transition:
+    background-color 0.15s ease;
 }
 
-.btn-orange:hover {
-    background-color: var(--hover-orange);
-    color: #000000;
+
+.vehicle-table tbody tr:hover td {
+  background-color: #fffdf5;
 }
 
-.btn.btn-orange-action {
-    background-color: #ffc107;
-    color: #000000;
-    border: 1px solid #ffc107; 
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+
+/* =========================================================
+   VEHICLE INFORMATION
+   ========================================================= */
+
+.vehicle-plate {
+  letter-spacing: 0.04em;
 }
 
-.btn.btn-orange-action:hover {
-    background-color: #e0a100;
-    color: #ffffff;
-    border-color: #e0a100;
+
+/* =========================================================
+   ACTION BUTTONS
+   ========================================================= */
+
+.vehicle-action-button {
+  width: 34px;
+  height: 34px;
+
+  padding: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: transparent;
+
+  border: 1px solid #dee2e6;
+
+  color: #6c757d;
+
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.text-muted-custom {
-    font-size: 0.9rem;
-    color: #6c757d;
+
+.vehicle-action-edit:hover {
+  background-color: rgba(
+    255,
+    193,
+    7,
+    0.14
+  );
+
+  border-color: #ffc107;
+
+  color: #a97700;
 }
 
-.vehicle-card-wrapper {
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
+
+.vehicle-action-delete:hover {
+  background-color: rgba(
+    220,
+    53,
+    69,
+    0.08
+  );
+
+  border-color: #dc3545;
+
+  color: #dc3545;
 }
 
-.vehicle-workshop-table thead th {
-    background-color: #ffffff;
-    color: #212529;
-    font-weight: 700;
-    vertical-align: middle;
-    padding: 0.3rem 0.90rem;
+
+.vehicle-action-delete:disabled {
+  opacity: 0.5;
 }
 
-.vehicle-workshop-table tbody td {
-    padding: 1rem 0.70rem; 
-    vertical-align: middle;
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.vehicle-record-select {
+  width: 75px;
 }
 
-.vehicle-workshop-table .search-row th,
-.vehicle-workshop-table .search-row td {
-    padding: 4px 8px;
-    background-color: #fdfdfd;
+
+.vehicle-page
+.pagination
+.page-item.active
+.page-link {
+  background-color: #ffc107;
+
+  border-color: #ffc107;
+
+  color: #212529;
+
+  font-weight: 700;
 }
 
-.vehicle-workshop-table .search-row input::placeholder {
-    color: #adb5bd;
-    font-size: 0.8rem;
+
+.vehicle-page
+.pagination
+.page-link {
+  color: #495057;
 }
 
-.backend-dropdown {
-    z-index: 1050;
-    min-width: 240px;
-    border-radius: 6px;
-    border: 1px solid #ced4da;
+
+.vehicle-page
+.pagination
+.page-link:hover {
+  background-color: #212529;
+
+  border-color: #212529;
+
+  color: #ffffff;
 }
 
-.style-cursor {
-    cursor: pointer;
+
+/* =========================================================
+   FORM SECTIONS
+   ========================================================= */
+
+.vehicle-form-section {
+  padding-top: 1.5rem;
+
+  margin-top: 1.5rem;
+
+  border-top: 1px solid #e9ecef;
 }
 
-.action-icon-btn {
-    background: transparent;
-    border: none;
-    padding: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s ease;
+
+.vehicle-form-section-title {
+  margin-bottom: 1rem;
+
+  color: #6c757d;
+
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.08em;
 }
 
-.action-icon-btn:hover {
-    transform: scale(1.1);
+
+/* =========================================================
+   VEHICLE MODAL
+   ========================================================= */
+
+/*
+ * Bootstrap's modal-dialog-scrollable now handles
+ * the scrolling.
+ *
+ * The important difference is that the <form> itself
+ * is .modal-content, so modal-header, modal-body and
+ * modal-footer are direct children.
+ */
+
+.vehicle-modal-layer {
+  background-color: rgba(
+    0,
+    0,
+    0,
+    0.62
+  );
+
+  z-index: 1060;
 }
 
-.action-edit {
-    color: var(--primary-orange);
+
+/*
+ * Give Bootstrap's scrollable dialog almost all
+ * of the available viewport.
+ */
+
+.vehicle-modal-dialog {
+  height: calc(
+    100vh - 2rem
+  );
+
+  height: calc(
+    100dvh - 2rem
+  );
+
+  margin-top: 1rem;
+  margin-bottom: 1rem;
 }
 
-.action-delete {
-    color: #dc3545;
+
+/*
+ * This is the WHITE area containing the fields.
+ *
+ * Bootstrap already gives .modal-body overflow-y:auto
+ * when modal-dialog-scrollable is present.
+ *
+ * We repeat it here explicitly so there is no ambiguity.
+ */
+
+.vehicle-modal-dialog
+.modal-body {
+  min-height: 0;
+
+  overflow-y: auto !important;
+  overflow-x: hidden;
+
+  overscroll-behavior: contain;
+
+  -webkit-overflow-scrolling: touch;
 }
 
-.pagination .page-link:hover {
-    background-color: #343a40;
-    border-color: #343a40;
-    color: #ffffff;
+
+/*
+ * Header and footer don't shrink.
+ */
+
+.vehicle-modal-dialog
+.modal-header,
+.vehicle-modal-dialog
+.modal-footer {
+  flex-shrink: 0;
 }
 
-.pagination .page-item.active .page-link {
-    background-color: var(--primary-orange);
-    border-color: var(--primary-orange);
-    color: #000000;
-    font-weight: bold;
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+.vehicle-modal-body::-webkit-scrollbar {
+  width: 9px;
 }
 
-.pagination .page-item.disabled .page-link {
-    background-color: #343639;
-    border-color: #495057;
-    color: #ffffff;
+
+.vehicle-modal-body::-webkit-scrollbar-track {
+  background-color: #f1f3f5;
 }
 
-.btn.btn-changed {
-    background-color: #ffc107;
-    color: #000000; 
-    transition: background-color 0.2s ease;
-    padding: 4px 8px;
+
+.vehicle-modal-body::-webkit-scrollbar-thumb {
+  background-color: #adb5bd;
+
+  border-radius: 999px;
+
+  border: 2px solid #f1f3f5;
 }
 
-.btn.btn-changed:hover {
-    background-color: #e0a100;
-    color: #ffffff;
+
+.vehicle-modal-body::-webkit-scrollbar-thumb:hover {
+  background-color: #6c757d;
+}
+
+
+.vehicle-modal-body {
+  scrollbar-width: thin;
+
+  scrollbar-color:
+    #adb5bd
+    #f1f3f5;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (
+  max-width: 767.98px
+) {
+
+  .vehicle-table {
+    min-width: 760px;
+  }
+
+
+  .vehicle-modal-dialog {
+    height: calc(
+      100vh - 1rem
+    );
+
+    height: calc(
+      100dvh - 1rem
+    );
+
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+@media (
+  prefers-reduced-motion: reduce
+) {
+
+  .vehicle-table tbody tr,
+  .vehicle-action-button {
+    transition: none;
+  }
 }
