@@ -33,8 +33,7 @@ import "./Vehicle-List.css";
 // VALIDATION
 // =========================================================
 
-const PLATE_REGEX =
-  /^\d{4}[BCDFGHJKLMNPRSTVWXYZ]{3}$/;
+const MAX_PLATE_LENGTH = 20;
 
 const VIN_REGEX =
   /^[A-HJ-NPR-Z0-9]{17}$/;
@@ -145,7 +144,7 @@ const normalizePlate = (
   value = ""
 ) => {
   return value
-    .replace(/[\s-]/g, "")
+    .trim()
     .toUpperCase();
 };
 
@@ -1149,9 +1148,7 @@ export default function VehicleList() {
     ) {
 
       nextValue =
-        normalizePlate(
-          value
-        );
+        value.toUpperCase();
     }
 
 
@@ -1230,13 +1227,12 @@ export default function VehicleList() {
           "Plate is required.";
 
       } else if (
-        !PLATE_REGEX.test(
-          plate
-        )
+        plate.length >
+        MAX_PLATE_LENGTH
       ) {
 
         nextErrors.plate =
-          "Invalid plate. Example: 1234ABC";
+          `Plate cannot exceed ${MAX_PLATE_LENGTH} characters.`;
       }
 
 
@@ -2993,8 +2989,8 @@ export default function VehicleList() {
                             ? "is-invalid"
                             : ""
                         }`}
-                        placeholder="1234ABC"
-                        maxLength={7}
+                        placeholder="Example: 1234 ABC or AB-123-CD"
+                        maxLength={MAX_PLATE_LENGTH}
                         value={formState.plate}
                         onChange={handleInputChange}
                         disabled={saving}
