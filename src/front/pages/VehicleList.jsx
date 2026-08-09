@@ -334,6 +334,30 @@ const formatMileage = (
 };
 
 
+const formatEngineSize = (
+  engineCc
+) => {
+
+  const numericEngineCc =
+    Number(engineCc);
+
+
+  if (
+    !numericEngineCc ||
+    Number.isNaN(
+      numericEngineCc
+    )
+  ) {
+    return "";
+  }
+
+
+  return `${(
+    numericEngineCc / 1000
+  ).toFixed(1)} L`;
+};
+
+
 // =========================================================
 // COMPONENT
 // =========================================================
@@ -1350,12 +1374,15 @@ export default function VehicleList() {
           Number.isNaN(
             powerHp
           ) ||
-          powerHp < 0
+          powerHp <= 0 ||
+          !Number.isInteger(
+            powerHp
+          )
         )
       ) {
 
         nextErrors.power_hp =
-          "Power must be zero or a positive number.";
+          "Enter power in whole HP. Example: 150.";
       }
 
 
@@ -1371,12 +1398,15 @@ export default function VehicleList() {
           Number.isNaN(
             engineCc
           ) ||
-          engineCc < 0
+          engineCc <= 0 ||
+          !Number.isInteger(
+            engineCc
+          )
         )
       ) {
 
         nextErrors.engine_cc =
-          "Engine CC must be zero or a positive number.";
+          "Enter displacement in whole cc. Example: 1800 for a 1.8 L engine.";
       }
 
 
@@ -2222,7 +2252,7 @@ export default function VehicleList() {
               <div className="col-12 col-md-6 col-xl-4">
 
                 <label className="form-label small fw-semibold">
-                  Power HP
+                  Power (HP)
                 </label>
 
                 <input
@@ -2243,7 +2273,7 @@ export default function VehicleList() {
               <div className="col-12 col-md-6 col-xl-4">
 
                 <label className="form-label small fw-semibold">
-                  Engine CC
+                  Engine displacement (cc)
                 </label>
 
                 <input
@@ -2567,7 +2597,9 @@ export default function VehicleList() {
                                   : ""}
 
                                 {vehicle.displacement
-                                  ? `${vehicle.displacement} cc`
+                                  ? formatEngineSize(
+                                      vehicle.displacement
+                                    )
                                   : ""}
 
                               </span>
@@ -3205,28 +3237,42 @@ export default function VehicleList() {
                     <div className="col-12 col-sm-6 col-lg-3">
 
                       <label className="form-label fw-semibold">
-                        Power HP
+                        Power
                       </label>
 
-                      <input
-                        type="number"
-                        name="power_hp"
-                        min="0"
-                        className={`form-control ${
-                          formErrors.power_hp
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        value={formState.power_hp}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
+                      <div className="input-group has-validation">
 
-                      {formErrors.power_hp && (
-                        <div className="invalid-feedback">
-                          {formErrors.power_hp}
-                        </div>
-                      )}
+                        <input
+                          type="number"
+                          name="power_hp"
+                          min="1"
+                          step="1"
+                          placeholder="150"
+                          className={`form-control ${
+                            formErrors.power_hp
+                              ? "is-invalid"
+                              : ""
+                          }`}
+                          value={formState.power_hp}
+                          onChange={handleInputChange}
+                          disabled={saving}
+                        />
+
+                        <span className="input-group-text">
+                          HP
+                        </span>
+
+                        {formErrors.power_hp && (
+                          <div className="invalid-feedback">
+                            {formErrors.power_hp}
+                          </div>
+                        )}
+
+                      </div>
+
+                      <div className="form-text">
+                        Example: 90, 120, 150 or 200 HP.
+                      </div>
 
                     </div>
 
@@ -3234,28 +3280,42 @@ export default function VehicleList() {
                     <div className="col-12 col-sm-6 col-lg-3">
 
                       <label className="form-label fw-semibold">
-                        Engine CC
+                        Engine displacement
                       </label>
 
-                      <input
-                        type="number"
-                        name="engine_cc"
-                        min="0"
-                        className={`form-control ${
-                          formErrors.engine_cc
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        value={formState.engine_cc}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
+                      <div className="input-group has-validation">
 
-                      {formErrors.engine_cc && (
-                        <div className="invalid-feedback">
-                          {formErrors.engine_cc}
-                        </div>
-                      )}
+                        <input
+                          type="number"
+                          name="engine_cc"
+                          min="1"
+                          step="1"
+                          placeholder="1800"
+                          className={`form-control ${
+                            formErrors.engine_cc
+                              ? "is-invalid"
+                              : ""
+                          }`}
+                          value={formState.engine_cc}
+                          onChange={handleInputChange}
+                          disabled={saving}
+                        />
+
+                        <span className="input-group-text">
+                          cc
+                        </span>
+
+                        {formErrors.engine_cc && (
+                          <div className="invalid-feedback">
+                            {formErrors.engine_cc}
+                          </div>
+                        )}
+
+                      </div>
+
+                      <div className="form-text">
+                        Example: 1800 cc ≈ 1.8 L. Leave blank if not applicable.
+                      </div>
 
                     </div>
 
