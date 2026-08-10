@@ -1,482 +1,790 @@
-import { useState } from "react";
+const MAX_PLATE_LENGTH = 20;
 
-const PLATE_REGEX = /^\d{4}[BCDFGHJKLMNPRSTVWXYZ]{3}$/;
 const VIN_REGEX = /^[A-HJ-NPR-Z0-9]{17}$/;
 
-const normalizePlate = (value = "") =>
-  value.replace(/[\s-]/g, "").toUpperCase();
+export const FUEL_OPTIONS = [
+  { value: "gasoline", label: "Gasoline" },
+  { value: "diesel", label: "Diesel" },
+  { value: "hybrid", label: "Hybrid" },
+  { value: "plug_in_hybrid", label: "Plug-in hybrid" },
+  { value: "electric", label: "Electric" },
+  { value: "lpg", label: "LPG" },
+];
 
-function ButtonSpinner({ text }) {
-  return (
-    <>
-      <span
-        className="spinner-border spinner-border-sm me-2"
-        role="status"
-        aria-hidden="true"
-      ></span>
-      {text}
-    </>
+const VALID_FUEL_TYPES = FUEL_OPTIONS.map(
+  (fuel) => fuel.value
+);
+
+export const EMPTY_VEHICLE_FORM = {
+  customer_id: "",
+  plate: "",
+  vin: "",
+  brand: "",
+  model: "",
+  version: "",
+  year: "",
+  fuel_type: "gasoline",
+  power_hp: "",
+  engine_cc: "",
+  color: "",
+  mileage: "",
+  first_registration_date: "",
+};
+
+export const normalizePlate = (value = "") =>
+  value.trim().toUpperCase();
+
+export const normalizeVehicleField = (
+  name,
+  value = ""
+) => {
+  if (name === "plate") {
+    return value.toUpperCase();
+  }
+
+  if (name === "vin") {
+    return value
+      .replace(/\s/g, "")
+      .toUpperCase();
+  }
+
+  return value;
+};
+
+export const getFuelLabel = (fuelValue) =>
+  FUEL_OPTIONS.find(
+    (fuel) => fuel.value === fuelValue
+  )?.label ||
+  fuelValue ||
+  "Not specified";
+
+export const validateVehicleForm = (
+  formData,
+  { requireCustomer = true } = {}
+) => {
+  const errors = {};
+
+  if (
+    requireCustomer &&
+    !formData.customer_id
+  ) {
+    errors.customer_id =
+      "Select a customer.";
+  }
+
+  const plate = normalizePlate(
+    formData.plate || ""
   );
-}
 
-export const VehicleForm = ({
-  selectedCustomer,
-  selectedVehicle,
-  customerVehicles,
-  vehicleForm,
-  showVehicleForm,
-  isBusy,
-  isSavingVehicle,
-  onSelectVehicle,
-  onVehicleFormChange,
-  onCreateVehicle,
-  onToggleVehicleForm,
-  onClearVehicleForm,
-  onBack,
-  onContinue,
-  getCustomerLabel,
-  getVehicleName,
-  fuelTypes
-}) => {
-  const [errors, setErrors] = useState({});
+  if (!plate) {
+    errors.plate =
+      "Plate is required.";
+  } else if (
+    plate.length >
+    MAX_PLATE_LENGTH
+  ) {
+    errors.plate =
+      `Plate cannot exceed ${MAX_PLATE_LENGTH} characters.`;
+  }
 
-  const handleFieldChange = (event) => {
-    const { name, value, type } = event.target;
+  const vin = (
+    formData.vin || ""
+  )
+    .trim()
+    .toUpperCase();
 
-    if (errors[name]) {
-      setErrors((currentErrors) => ({
-        ...currentErrors,
-        [name]: undefined
-      }));
+  if (
+    vin &&
+    !VIN_REGEX.test(vin)
+  ) {
+    errors.vin =
+      "Invalid VIN. It must have 17 characters and no I/O/Q.";
+  }
+
+  if (
+    !(formData.brand || "").trim()
+  ) {
+    errors.brand =
+      "Brand is required.";
+  }
+
+  if (
+    !(formData.model || "").trim()
+  ) {
+    errors.model =
+      "Model is required.";
+  }
+
+  if (
+    !formData.fuel_type ||
+    !VALID_FUEL_TYPES.includes(
+      formData.fuel_type
+    )
+  ) {
+    errors.fuel_type =
+      "Select a valid fuel type.";
+  }
+
+  const year = Number(
+    formData.year
+  );
+
+  const currentYear =
+    new Date().getFullYear();
+
+  if (
+    formData.year !== "" &&
+    (
+      Number.isNaN(year) ||
+      year < 1900 ||
+      year > currentYear + 1
+    )
+  ) {
+    errors.year =
+      `Enter a year between 1900 and ${currentYear + 1}.`;
+  }
+
+  const mileage = Number(
+    formData.mileage
+  );
+
+  if (
+    formData.mileage !== "" &&
+    (
+      Number.isNaN(mileage) ||
+      mileage < 0
+    )
+  ) {
+    errors.mileage =
+      "Mileage must be zero or a positive number.";
+  }
+
+  const powerHp = Number(
+    formData.power_hp
+  );
+
+  if (
+    formData.power_hp !== "" &&
+    (
+      Number.isNaN(powerHp) ||
+      powerHp <= 0 ||
+      !Number.isInteger(powerHp)
+    )
+  ) {
+    errors.power_hp =
+      "Enter power in whole HP. Example: 150.";
+  }
+
+  const engineCc = Number(
+    formData.engine_cc
+  );
+
+  if (
+    formData.engine_cc !== "" &&
+    (
+      Number.isNaN(engineCc) ||
+      engineCc <= 0 ||
+      !Number.isInteger(engineCc)
+    )
+  ) {
+    errors.engine_cc =
+      "Enter displacement in whole cc. Example: 1800 for a 1.8 L engine.";
+  }
+
+  if (
+    formData.first_registration_date
+  ) {
+    const registrationDate =
+      new Date(
+        `${formData.first_registration_date}T00:00:00`
+      );
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const vehicleYear = Number(
+      formData.year
+    );
+
+    const registrationYear =
+      registrationDate.getFullYear();
+
+    if (
+      Number.isNaN(
+        registrationDate.getTime()
+      ) ||
+      registrationDate > today
+    ) {
+      errors.first_registration_date =
+        "Registration date cannot be in the future.";
+    } else if (
+      formData.year !== "" &&
+      !Number.isNaN(vehicleYear) &&
+      registrationYear < vehicleYear
+    ) {
+      errors.first_registration_date =
+        `Registration date cannot be earlier than the manufacturing year (${vehicleYear}).`;
     }
+  }
 
-    let nextValue = value;
+  return errors;
+};
 
-    if (name === "plate") {
-      nextValue = normalizePlate(value);
-    }
+export const buildVehiclePayload = (
+  formData,
+  { customerId } = {}
+) => ({
+  customer_id: Number(
+    customerId ??
+      formData.customer_id
+  ),
+  plate: normalizePlate(
+    formData.plate || ""
+  ),
+  vin: (formData.vin || "").trim()
+    ? (formData.vin || "")
+        .trim()
+        .toUpperCase()
+    : null,
+  brand: (formData.brand || "").trim(),
+  model: (formData.model || "").trim(),
+  version:
+    (formData.version || "").trim() ||
+    null,
+  year:
+    formData.year !== ""
+      ? Number(formData.year)
+      : null,
+  fuel_type: formData.fuel_type,
+  power_hp:
+    formData.power_hp !== ""
+      ? Number(formData.power_hp)
+      : null,
+  engine_cc:
+    formData.engine_cc !== ""
+      ? Number(formData.engine_cc)
+      : null,
+  color:
+    (formData.color || "").trim() ||
+    null,
+  mileage:
+    formData.mileage !== ""
+      ? Number(formData.mileage)
+      : 0,
+  first_registration_date:
+    formData.first_registration_date ||
+    null,
+});
 
-    if (name === "vin") {
-      nextValue = value.replace(/\s/g, "").toUpperCase();
-    }
+const getCustomerName = (customer) =>
+  [
+    customer?.first_name,
+    customer?.last_name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
-    onVehicleFormChange({
+export function VehicleForm({
+  formData,
+  errors = {},
+  disabled = false,
+  onChange,
+  customers = [],
+  showOwnerField = true,
+  idPrefix = "vehicle",
+}) {
+  const handleFieldChange = (
+    event
+  ) => {
+    const {
+      name,
+      value,
+      type,
+    } = event.target;
+
+    onChange({
       target: {
         name,
-        value: nextValue,
-        type
-      }
+        value:
+          normalizeVehicleField(
+            name,
+            value
+          ),
+        type,
+      },
     });
   };
 
-  const validate = () => {
-    const nextErrors = {};
-
-    if (!selectedCustomer) {
-      nextErrors.general = "Please select or create a customer first.";
-    }
-
-    const plate = normalizePlate(vehicleForm.plate || "");
-
-    if (!plate) {
-      nextErrors.plate = "Required";
-    } else if (!PLATE_REGEX.test(plate)) {
-      nextErrors.plate = "Invalid plate. Example: 1234ABC";
-    }
-
-    const vin = (vehicleForm.vin || "").trim().toUpperCase();
-
-    if (vin && !VIN_REGEX.test(vin)) {
-      nextErrors.vin =
-        "Invalid VIN. It must have 17 characters and no I/O/Q.";
-    }
-
-    if (!(vehicleForm.brand || "").trim()) {
-      nextErrors.brand = "Required";
-    }
-
-    if (!(vehicleForm.model || "").trim()) {
-      nextErrors.model = "Required";
-    }
-
-    const validFuelType = fuelTypes.some(
-      (fuelType) => fuelType.value === vehicleForm.fuel_type
-    );
-
-    if (!vehicleForm.fuel_type || !validFuelType) {
-      nextErrors.fuel_type = "Select a valid fuel type";
-    }
-
-    const year = Number(vehicleForm.year);
-    const currentYear = new Date().getFullYear();
-
-    if (
-      vehicleForm.year !== "" &&
-      (Number.isNaN(year) || year < 1900 || year > currentYear + 1)
-    ) {
-      nextErrors.year = `Between 1900 and ${currentYear + 1}`;
-    }
-
-    const mileage = Number(vehicleForm.mileage);
-
-    if (
-      vehicleForm.mileage !== "" &&
-      (Number.isNaN(mileage) || mileage < 0)
-    ) {
-      nextErrors.mileage = "Must be zero or a positive number";
-    }
-
-    const powerHp = Number(vehicleForm.power_hp);
-
-    if (
-      vehicleForm.power_hp !== "" &&
-      (Number.isNaN(powerHp) || powerHp < 0)
-    ) {
-      nextErrors.power_hp = "Must be zero or a positive number";
-    }
-
-    const engineCc = Number(vehicleForm.engine_cc);
-
-    if (
-      vehicleForm.engine_cc !== "" &&
-      (Number.isNaN(engineCc) || engineCc < 0)
-    ) {
-      nextErrors.engine_cc = "Must be zero or a positive number";
-    }
-
-    if (vehicleForm.first_registration_date) {
-      const registrationDate = new Date(
-        `${vehicleForm.first_registration_date}T00:00:00`
-      );
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const vehicleYear = Number(vehicleForm.year);
-      const registrationYear = registrationDate.getFullYear();
-
-      if (
-        Number.isNaN(registrationDate.getTime()) ||
-        registrationDate > today
-      ) {
-        nextErrors.first_registration_date =
-          "Registration date cannot be in the future";
-      } else if (
-        vehicleForm.year !== "" &&
-        !Number.isNaN(vehicleYear) &&
-        registrationYear < vehicleYear
-      ) {
-        nextErrors.first_registration_date =
-          `Registration date cannot be earlier than the manufacturing year (${vehicleYear})`;
-      }
-    }
-
-    return nextErrors;
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    const validationErrors = validate();
-
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
-    setErrors({});
-    onCreateVehicle(event);
-  };
-
   return (
-    <section>
-      <h3 className="h5 fw-bold mb-3">Vehicle</h3>
+    <>
+      {showOwnerField && (
+        <div className="mb-4">
+          <p className="vehicle-form-section-title">
+            Owner
+          </p>
 
-      <div className="alert alert-light border rounded-4">
-        <strong>Customer:</strong>{" "}
-        {selectedCustomer ? getCustomerLabel(selectedCustomer) : "No customer selected"}
-      </div>
+          <label
+            className="form-label fw-semibold"
+            htmlFor={`${idPrefix}-customer`}
+          >
+            Customer *
+          </label>
 
-      {errors.general && (
-        <div className="alert alert-danger rounded-4">{errors.general}</div>
-      )}
+          <select
+            id={`${idPrefix}-customer`}
+            name="customer_id"
+            className={`form-select ${
+              errors.customer_id
+                ? "is-invalid"
+                : ""
+            }`}
+            value={formData.customer_id}
+            onChange={handleFieldChange}
+            disabled={disabled}
+          >
+            <option value="">
+              Select customer
+            </option>
 
-      {customerVehicles.length === 0 && !showVehicleForm && (
-        <div className="alert alert-warning rounded-4">
-          This customer has no vehicles yet. Add a vehicle to continue.
+            {customers.map(
+              (customer) => (
+                <option
+                  key={customer.id}
+                  value={customer.id}
+                >
+                  {getCustomerName(
+                    customer
+                  )}
+                  {customer.dni
+                    ? ` · ${customer.dni}`
+                    : ""}
+                </option>
+              )
+            )}
+          </select>
+
+          {errors.customer_id && (
+            <div className="invalid-feedback">
+              {errors.customer_id}
+            </div>
+          )}
         </div>
       )}
 
-      <div className="mb-3">
-        <label className="form-label fw-semibold" htmlFor="vehicle_id">
-          Select existing vehicle
-        </label>
+      <div className="vehicle-form-section">
+        <p className="vehicle-form-section-title">
+          Vehicle identification
+        </p>
 
-        <select
-          id="vehicle_id"
-          name="vehicle_id"
-          className="form-select py-2 px-3"
-          value={selectedVehicle?.id || ""}
-          onChange={onSelectVehicle}
-          disabled={customerVehicles.length === 0 || isBusy}
-        >
-          <option value="">Select a vehicle</option>
+        <div className="row g-3">
+          <div className="col-12 col-md-6">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-plate`}
+            >
+              Plate *
+            </label>
 
-          {customerVehicles.map((vehicle) => (
-            <option key={vehicle.id} value={vehicle.id}>
-              {getVehicleName(vehicle)}
-            </option>
-          ))}
-        </select>
-      </div>
+            <input
+              id={`${idPrefix}-plate`}
+              type="text"
+              name="plate"
+              className={`form-control text-uppercase ${
+                errors.plate
+                  ? "is-invalid"
+                  : ""
+              }`}
+              placeholder="Example: 1234 ABC or AB-123-CD"
+              maxLength={
+                MAX_PLATE_LENGTH
+              }
+              value={formData.plate}
+              onChange={handleFieldChange}
+              disabled={disabled}
+            />
 
-      <button
-        type="button"
-        className="btn btn-outline-dark mb-3"
-        onClick={onToggleVehicleForm}
-        disabled={isBusy}
-      >
-        {showVehicleForm ? "Cancel new vehicle" : "+ Add new vehicle"}
-      </button>
-
-      {showVehicleForm && (
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="card mb-3">
-            <div className="card-header">
-              <strong>Vehicle data</strong>
-            </div>
-
-            <div className="card-body">
-              <div className="row g-3">
-                <div className="col-md-4">
-                  <label className="form-label">Plate *</label>
-                  <input
-                    type="text"
-                    name="plate"
-                    className={`form-control text-uppercase ${errors.plate ? "is-invalid" : ""}`}
-                    placeholder="1234ABC"
-                    maxLength={7}
-                    value={vehicleForm.plate}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                  {errors.plate && (
-                    <div className="invalid-feedback">{errors.plate}</div>
-                  )}
-                </div>
-
-                <div className="col-md-8">
-                  <label className="form-label">VIN / Chassis number</label>
-                  <input
-                    type="text"
-                    name="vin"
-                    className={`form-control text-uppercase ${errors.vin ? "is-invalid" : ""}`}
-                    placeholder="17 characters"
-                    maxLength={17}
-                    value={vehicleForm.vin}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                  {errors.vin && (
-                    <div className="invalid-feedback">{errors.vin}</div>
-                  )}
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">Brand *</label>
-                  <input
-                    type="text"
-                    name="brand"
-                    className={`form-control ${errors.brand ? "is-invalid" : ""}`}
-                    placeholder="Example: Mazda"
-                    value={vehicleForm.brand}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                  {errors.brand && (
-                    <div className="invalid-feedback">{errors.brand}</div>
-                  )}
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">Model *</label>
-                  <input
-                    type="text"
-                    name="model"
-                    className={`form-control ${errors.model ? "is-invalid" : ""}`}
-                    placeholder="Example: 6"
-                    value={vehicleForm.model}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                  {errors.model && (
-                    <div className="invalid-feedback">{errors.model}</div>
-                  )}
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">Version</label>
-                  <input
-                    type="text"
-                    name="version"
-                    className="form-control"
-                    placeholder="Example: 2.0 Skyactiv"
-                    value={vehicleForm.version}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                </div>
-
-                <div className="col-md-3">
-                  <label className="form-label">Year</label>
-                  <input
-                    type="number"
-                    name="year"
-                    className={`form-control ${errors.year ? "is-invalid" : ""}`}
-                    min="1900"
-                    max="2100"
-                    value={vehicleForm.year}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                  {errors.year && (
-                    <div className="invalid-feedback">{errors.year}</div>
-                  )}
-                </div>
-
-                <div className="col-md-3">
-                  <label className="form-label">Fuel type *</label>
-                  <select
-                    name="fuel_type"
-                    className="form-select"
-                    value={vehicleForm.fuel_type}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  >
-                    {fuelTypes.map((fuelType) => (
-                      <option key={fuelType.value} value={fuelType.value}>
-                        {fuelType.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="col-md-3">
-                  <label className="form-label">Power HP</label>
-                  <input
-                    type="number"
-                    name="power_hp"
-                    min="0"
-                    className="form-control"
-                    value={vehicleForm.power_hp}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                </div>
-
-                <div className="col-md-3">
-                  <label className="form-label">Engine CC</label>
-                  <input
-                    type="number"
-                    name="engine_cc"
-                    min="0"
-                    className="form-control"
-                    value={vehicleForm.engine_cc}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">Color</label>
-                  <input
-                    type="text"
-                    name="color"
-                    className="form-control"
-                    value={vehicleForm.color}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">Mileage</label>
-                  <input
-                    type="number"
-                    name="mileage"
-                    min="0"
-                    className={`form-control ${errors.mileage ? "is-invalid" : ""}`}
-                    value={vehicleForm.mileage}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                  {errors.mileage && (
-                    <div className="invalid-feedback">{errors.mileage}</div>
-                  )}
-                </div>
-
-                <div className="col-md-4">
-                  <label className="form-label">First registration date</label>
-                  <input
-                    type="date"
-                    name="first_registration_date"
-                    className="form-control"
-                    value={vehicleForm.first_registration_date}
-                    onChange={handleFieldChange}
-                    disabled={isSavingVehicle}
-                  />
-                </div>
+            {errors.plate && (
+              <div className="invalid-feedback">
+                {errors.plate}
               </div>
+            )}
+          </div>
+
+          <div className="col-12 col-md-6">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-vin`}
+            >
+              VIN / Chassis number
+            </label>
+
+            <input
+              id={`${idPrefix}-vin`}
+              type="text"
+              name="vin"
+              className={`form-control text-uppercase ${
+                errors.vin
+                  ? "is-invalid"
+                  : ""
+              }`}
+              placeholder="17 characters"
+              maxLength={17}
+              value={formData.vin}
+              onChange={handleFieldChange}
+              disabled={disabled}
+            />
+
+            {errors.vin && (
+              <div className="invalid-feedback">
+                {errors.vin}
+              </div>
+            )}
+          </div>
+
+          <div className="col-12 col-md-6">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-brand`}
+            >
+              Brand *
+            </label>
+
+            <input
+              id={`${idPrefix}-brand`}
+              type="text"
+              name="brand"
+              className={`form-control ${
+                errors.brand
+                  ? "is-invalid"
+                  : ""
+              }`}
+              placeholder="Example: Mazda"
+              value={formData.brand}
+              onChange={handleFieldChange}
+              disabled={disabled}
+            />
+
+            {errors.brand && (
+              <div className="invalid-feedback">
+                {errors.brand}
+              </div>
+            )}
+          </div>
+
+          <div className="col-12 col-md-6">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-model`}
+            >
+              Model *
+            </label>
+
+            <input
+              id={`${idPrefix}-model`}
+              type="text"
+              name="model"
+              className={`form-control ${
+                errors.model
+                  ? "is-invalid"
+                  : ""
+              }`}
+              placeholder="Example: 6"
+              value={formData.model}
+              onChange={handleFieldChange}
+              disabled={disabled}
+            />
+
+            {errors.model && (
+              <div className="invalid-feedback">
+                {errors.model}
+              </div>
+            )}
+          </div>
+
+          <div className="col-12">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-version`}
+            >
+              Version
+            </label>
+
+            <input
+              id={`${idPrefix}-version`}
+              type="text"
+              name="version"
+              className="form-control"
+              placeholder="Example: Sport"
+              value={formData.version}
+              onChange={handleFieldChange}
+              disabled={disabled}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="vehicle-form-section">
+        <p className="vehicle-form-section-title">
+          Technical information
+        </p>
+
+        <div className="row g-3">
+          <div className="col-12 col-sm-6 col-lg-3">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-year`}
+            >
+              Year
+            </label>
+
+            <input
+              id={`${idPrefix}-year`}
+              type="number"
+              name="year"
+              className={`form-control ${
+                errors.year
+                  ? "is-invalid"
+                  : ""
+              }`}
+              min="1900"
+              max={
+                new Date().getFullYear() +
+                1
+              }
+              value={formData.year}
+              onChange={handleFieldChange}
+              disabled={disabled}
+            />
+
+            {errors.year && (
+              <div className="invalid-feedback">
+                {errors.year}
+              </div>
+            )}
+          </div>
+
+          <div className="col-12 col-sm-6 col-lg-3">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-fuel`}
+            >
+              Fuel *
+            </label>
+
+            <select
+              id={`${idPrefix}-fuel`}
+              name="fuel_type"
+              className={`form-select ${
+                errors.fuel_type
+                  ? "is-invalid"
+                  : ""
+              }`}
+              value={formData.fuel_type}
+              onChange={handleFieldChange}
+              disabled={disabled}
+            >
+              {FUEL_OPTIONS.map(
+                (fuel) => (
+                  <option
+                    key={fuel.value}
+                    value={fuel.value}
+                  >
+                    {fuel.label}
+                  </option>
+                )
+              )}
+            </select>
+
+            {errors.fuel_type && (
+              <div className="invalid-feedback">
+                {errors.fuel_type}
+              </div>
+            )}
+          </div>
+
+          <div className="col-12 col-sm-6 col-lg-3">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-power`}
+            >
+              Power
+            </label>
+
+            <div className="input-group has-validation">
+              <input
+                id={`${idPrefix}-power`}
+                type="number"
+                name="power_hp"
+                min="1"
+                step="1"
+                placeholder="150"
+                className={`form-control ${
+                  errors.power_hp
+                    ? "is-invalid"
+                    : ""
+                }`}
+                value={formData.power_hp}
+                onChange={handleFieldChange}
+                disabled={disabled}
+              />
+
+              <span className="input-group-text">
+                HP
+              </span>
+
+              {errors.power_hp && (
+                <div className="invalid-feedback">
+                  {errors.power_hp}
+                </div>
+              )}
+            </div>
+
+            <div className="form-text">
+              Example: 90, 120, 150 or 200 HP.
             </div>
           </div>
 
-          <div className="d-flex gap-2">
-            <button
-              type="submit"
-              className="btn btn-dark fw-bold"
-              disabled={isSavingVehicle}
+          <div className="col-12 col-sm-6 col-lg-3">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-engine`}
             >
-              {isSavingVehicle ? (
-                <ButtonSpinner text="Saving vehicle..." />
-              ) : (
-                "Save vehicle"
+              Engine displacement
+            </label>
+
+            <div className="input-group has-validation">
+              <input
+                id={`${idPrefix}-engine`}
+                type="number"
+                name="engine_cc"
+                min="1"
+                step="1"
+                placeholder="1800"
+                className={`form-control ${
+                  errors.engine_cc
+                    ? "is-invalid"
+                    : ""
+                }`}
+                value={formData.engine_cc}
+                onChange={handleFieldChange}
+                disabled={disabled}
+              />
+
+              <span className="input-group-text">
+                cc
+              </span>
+
+              {errors.engine_cc && (
+                <div className="invalid-feedback">
+                  {errors.engine_cc}
+                </div>
               )}
-            </button>
+            </div>
 
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={() => {
-                setErrors({});
-                onClearVehicleForm();
-              }}
-              disabled={isSavingVehicle}
-            >
-              Clear
-            </button>
+            <div className="form-text">
+              Example: 1800 cc ≈ 1.8 L. Leave blank if not applicable.
+            </div>
           </div>
-        </form>
-      )}
 
-      <div className="d-flex justify-content-between mt-4">
-        <button
-          type="button"
-          className="btn btn-outline-secondary"
-          onClick={onBack}
-          disabled={isBusy}
-        >
-          Back to customer
-        </button>
+          <div className="col-12 col-md-6">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-color`}
+            >
+              Color
+            </label>
 
-        <button
-          type="button"
-          className="btn btn-dark fw-bold"
-          onClick={onContinue}
-          disabled={!selectedVehicle || isBusy}
-        >
-          Continue to service
-        </button>
+            <input
+              id={`${idPrefix}-color`}
+              type="text"
+              name="color"
+              className="form-control"
+              placeholder="Example: White"
+              value={formData.color}
+              onChange={handleFieldChange}
+              disabled={disabled}
+            />
+          </div>
+
+          <div className="col-12 col-md-6">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-mileage`}
+            >
+              Mileage
+            </label>
+
+            <div className="input-group has-validation">
+              <input
+                id={`${idPrefix}-mileage`}
+                type="number"
+                name="mileage"
+                min="0"
+                className={`form-control ${
+                  errors.mileage
+                    ? "is-invalid"
+                    : ""
+                }`}
+                value={formData.mileage}
+                onChange={handleFieldChange}
+                disabled={disabled}
+              />
+
+              <span className="input-group-text">
+                km
+              </span>
+
+              {errors.mileage && (
+                <div className="invalid-feedback">
+                  {errors.mileage}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
+
+      <div className="vehicle-form-section">
+        <p className="vehicle-form-section-title">
+          Registration
+        </p>
+
+        <div className="row">
+          <div className="col-12 col-md-6">
+            <label
+              className="form-label fw-semibold"
+              htmlFor={`${idPrefix}-registration`}
+            >
+              First registration date
+            </label>
+
+            <input
+              id={`${idPrefix}-registration`}
+              type="date"
+              name="first_registration_date"
+              className={`form-control ${
+                errors.first_registration_date
+                  ? "is-invalid"
+                  : ""
+              }`}
+              value={
+                formData.first_registration_date
+              }
+              onChange={handleFieldChange}
+              disabled={disabled}
+            />
+
+            {errors.first_registration_date && (
+              <div className="invalid-feedback">
+                {
+                  errors.first_registration_date
+                }
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
-};
+}

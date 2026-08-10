@@ -31,21 +31,16 @@ import {
   updateCustomer,
 } from "../services/api";
 
+import {
+  buildCustomerPayload,
+  CustomerForm,
+  EMPTY_CUSTOMER_FORM,
+  validateCustomerForm,
+} from "../components/CustomerForm";
+
 import "./CustomerList.css";
 
 
-// =========================================================
-// VALIDATION
-// =========================================================
-
-const PHONE_REGEX =
-  /^\+?[0-9\s()-]{7,20}$/;
-
-const DNI_REGEX =
-  /^\d{8}[A-Z]$/;
-
-const NIE_REGEX =
-  /^[XYZ]\d{7}[A-Z]$/;
 
 
 // =========================================================
@@ -71,15 +66,6 @@ const INITIAL_VISIBILITY = {
 };
 
 
-const INITIAL_FORM_STATE = {
-  first_name: "",
-  last_name: "",
-  dni: "",
-  driving_license: "",
-  phone: "",
-  email: "",
-  address: "",
-};
 
 
 const COLUMN_OPTIONS = [
@@ -311,7 +297,7 @@ export default function CustomerList() {
     customerForm,
     setCustomerForm,
   ] = useState(
-    INITIAL_FORM_STATE
+    EMPTY_CUSTOMER_FORM
   );
 
   const [
@@ -846,7 +832,7 @@ export default function CustomerList() {
   // FORM
   // =======================================================
 
-  const handleInputChange = (
+  const handleCustomerFormChange = (
     event
   ) => {
 
@@ -856,26 +842,10 @@ export default function CustomerList() {
     } = event.target;
 
 
-    let nextValue =
-      value;
-
-
-    if (name === "dni") {
-
-      nextValue =
-        value
-          .replace(
-            /[\s-]/g,
-            ""
-          )
-          .toUpperCase();
-    }
-
-
     setCustomerForm(
       (currentCustomer) => ({
         ...currentCustomer,
-        [name]: nextValue,
+        [name]: value,
       })
     );
 
@@ -895,72 +865,6 @@ export default function CustomerList() {
   };
 
 
-  const validateCustomer = () => {
-
-    const errors = {};
-
-
-    const firstName =
-      customerForm.first_name.trim();
-
-    const lastName =
-      customerForm.last_name.trim();
-
-    const phone =
-      customerForm.phone.trim();
-
-    const dni =
-      customerForm.dni
-        .replace(
-          /[\s-]/g,
-          ""
-        )
-        .toUpperCase();
-
-
-    if (!firstName) {
-      errors.first_name =
-        "First name is required.";
-    }
-
-
-    if (!lastName) {
-      errors.last_name =
-        "Last name is required.";
-    }
-
-
-    if (!phone) {
-
-      errors.phone =
-        "Phone is required.";
-
-    } else if (
-      !PHONE_REGEX.test(
-        phone
-      )
-    ) {
-
-      errors.phone =
-        "Enter a valid phone number.";
-    }
-
-
-    if (
-      dni &&
-      !DNI_REGEX.test(dni) &&
-      !NIE_REGEX.test(dni)
-    ) {
-
-      errors.dni =
-        "Enter a valid DNI or NIE. Example: 12345678Z or X1234567L.";
-    }
-
-
-    return errors;
-  };
-
-
   // =======================================================
   // MODAL
   // =======================================================
@@ -971,7 +875,7 @@ export default function CustomerList() {
       setEditingCustomer(null);
 
       setCustomerForm(
-        INITIAL_FORM_STATE
+        EMPTY_CUSTOMER_FORM
       );
 
       setFormErrors({});
@@ -1039,7 +943,7 @@ export default function CustomerList() {
     setEditingCustomer(null);
 
     setCustomerForm(
-      INITIAL_FORM_STATE
+      EMPTY_CUSTOMER_FORM
     );
 
     setFormErrors({});
@@ -1072,7 +976,7 @@ export default function CustomerList() {
 
 
       const validationErrors =
-        validateCustomer();
+        validateCustomerForm(customerForm);
 
 
       if (
@@ -1098,31 +1002,10 @@ export default function CustomerList() {
         setModalError("");
 
 
-        const payload = {
-
-          first_name:
-            customerForm.first_name.trim(),
-
-          last_name:
-            customerForm.last_name.trim(),
-
-          dni:
-            customerForm.dni
-              .trim()
-              .toUpperCase(),
-
-          driving_license:
-            customerForm.driving_license.trim(),
-
-          phone:
-            customerForm.phone.trim(),
-
-          email:
-            customerForm.email.trim(),
-
-          address:
-            customerForm.address.trim(),
-        };
+        const payload =
+          buildCustomerPayload(
+            customerForm
+          );
 
 
         if (editingCustomer) {
@@ -1186,7 +1069,7 @@ export default function CustomerList() {
         setEditingCustomer(null);
 
         setCustomerForm(
-          INITIAL_FORM_STATE
+          EMPTY_CUSTOMER_FORM
         );
 
         setFormErrors({});
@@ -2567,289 +2450,13 @@ export default function CustomerList() {
                   )}
 
 
-                  <div className="row g-3">
-
-
-                    {/* FIRST NAME */}
-
-                    <div className="col-12 col-md-6">
-
-                      <label
-                        className="form-label fw-semibold"
-                        htmlFor="customer-first-name"
-                      >
-                        First name *
-                      </label>
-
-                      <input
-                        id="customer-first-name"
-                        type="text"
-                        name="first_name"
-                        className={`form-control ${
-                          formErrors.first_name
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        value={
-                          customerForm.first_name
-                        }
-                        disabled={
-                          savingCustomer
-                        }
-                        onChange={
-                          handleInputChange
-                        }
-                      />
-
-
-                      {formErrors.first_name && (
-
-                        <div className="invalid-feedback">
-
-                          {
-                            formErrors.first_name
-                          }
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-
-                    {/* LAST NAME */}
-
-                    <div className="col-12 col-md-6">
-
-                      <label
-                        className="form-label fw-semibold"
-                        htmlFor="customer-last-name"
-                      >
-                        Last name *
-                      </label>
-
-                      <input
-                        id="customer-last-name"
-                        type="text"
-                        name="last_name"
-                        className={`form-control ${
-                          formErrors.last_name
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        value={
-                          customerForm.last_name
-                        }
-                        disabled={
-                          savingCustomer
-                        }
-                        onChange={
-                          handleInputChange
-                        }
-                      />
-
-
-                      {formErrors.last_name && (
-
-                        <div className="invalid-feedback">
-
-                          {
-                            formErrors.last_name
-                          }
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-
-                    {/* DNI */}
-
-                    <div className="col-12 col-md-6">
-
-                      <label
-                        className="form-label fw-semibold"
-                        htmlFor="customer-dni"
-                      >
-                        DNI / NIE
-                      </label>
-
-                      <input
-                        id="customer-dni"
-                        type="text"
-                        name="dni"
-                        maxLength={9}
-                        placeholder="12345678Z or X1234567L"
-                        className={`form-control text-uppercase ${
-                          formErrors.dni
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        value={
-                          customerForm.dni
-                        }
-                        disabled={
-                          savingCustomer
-                        }
-                        onChange={
-                          handleInputChange
-                        }
-                      />
-
-
-                      {formErrors.dni && (
-
-                        <div className="invalid-feedback">
-
-                          {
-                            formErrors.dni
-                          }
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-
-                    {/* DRIVING LICENCE */}
-
-                    <div className="col-12 col-md-6">
-
-                      <label
-                        className="form-label fw-semibold"
-                        htmlFor="customer-driving-license"
-                      >
-                        Driving licence
-                      </label>
-
-                      <input
-                        id="customer-driving-license"
-                        type="text"
-                        name="driving_license"
-                        className="form-control"
-                        value={
-                          customerForm.driving_license
-                        }
-                        disabled={
-                          savingCustomer
-                        }
-                        onChange={
-                          handleInputChange
-                        }
-                      />
-
-                    </div>
-
-
-                    {/* PHONE */}
-
-                    <div className="col-12 col-md-6">
-
-                      <label
-                        className="form-label fw-semibold"
-                        htmlFor="customer-phone"
-                      >
-                        Phone *
-                      </label>
-
-                      <input
-                        id="customer-phone"
-                        type="tel"
-                        name="phone"
-                        className={`form-control ${
-                          formErrors.phone
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        value={
-                          customerForm.phone
-                        }
-                        disabled={
-                          savingCustomer
-                        }
-                        onChange={
-                          handleInputChange
-                        }
-                      />
-
-
-                      {formErrors.phone && (
-
-                        <div className="invalid-feedback">
-
-                          {
-                            formErrors.phone
-                          }
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-
-                    {/* EMAIL */}
-
-                    <div className="col-12 col-md-6">
-
-                      <label
-                        className="form-label fw-semibold"
-                        htmlFor="customer-email"
-                      >
-                        Email
-                      </label>
-
-                      <input
-                        id="customer-email"
-                        type="email"
-                        name="email"
-                        className="form-control"
-                        value={
-                          customerForm.email
-                        }
-                        disabled={
-                          savingCustomer
-                        }
-                        onChange={
-                          handleInputChange
-                        }
-                      />
-
-                    </div>
-
-
-                    {/* ADDRESS */}
-
-                    <div className="col-12">
-
-                      <label
-                        className="form-label fw-semibold"
-                        htmlFor="customer-address"
-                      >
-                        Address
-                      </label>
-
-                      <input
-                        id="customer-address"
-                        type="text"
-                        name="address"
-                        className="form-control"
-                        value={
-                          customerForm.address
-                        }
-                        disabled={
-                          savingCustomer
-                        }
-                        onChange={
-                          handleInputChange
-                        }
-                      />
-
-                    </div>
-
-                  </div>
+                  <CustomerForm
+                    formData={customerForm}
+                    errors={formErrors}
+                    disabled={savingCustomer}
+                    onChange={handleCustomerFormChange}
+                    idPrefix="customer-modal"
+                  />
 
                 </div>
 
