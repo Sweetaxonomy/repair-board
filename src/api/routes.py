@@ -915,24 +915,73 @@ def update_vehicle(vehicle_id):
     current_user = get_current_user()
 
     if not is_admin(current_user):
-        return error_response("Only admin users can update vehicles", 403)
+        return error_response(
+            "Only admin users can update vehicles",
+            403
+        )
 
-    vehicle, error = get_vehicle_or_error(vehicle_id, current_user)
+    vehicle, error = get_vehicle_or_error(
+        vehicle_id,
+        current_user
+    )
 
     if error:
         return error
 
     data = request.get_json() or {}
 
-    if "fuel_type" in data and data.get("fuel_type") not in FUEL_TYPES:
+
+    # --------------------------------------------------
+    # OWNER / CUSTOMER
+    # --------------------------------------------------
+
+    if "customer_id" in data:
+
+        customer_id = data.get("customer_id")
+
+        if not customer_id:
+            return error_response(
+                "customer_id is required",
+                400
+            )
+
+        customer, error = get_customer_or_error(
+            customer_id,
+            current_user
+        )
+
+        if error:
+            return error
+
+        vehicle.customer_id = customer.id
+
+
+    # --------------------------------------------------
+    # FUEL TYPE
+    # --------------------------------------------------
+
+    if (
+        "fuel_type" in data
+        and data.get("fuel_type") not in FUEL_TYPES
+    ):
         return jsonify({
             "message": "Invalid fuel_type",
             "error": "Invalid fuel_type",
             "allowed_values": FUEL_TYPES
         }), 400
 
+
+    # --------------------------------------------------
+    # PLATE
+    # --------------------------------------------------
+
     if "plate" in data and data.get("plate"):
-        normalized_plate = data.get("plate").upper().strip()
+
+        normalized_plate = (
+            data.get("plate")
+            .upper()
+            .strip()
+        )
 
         existing_vehicle_plate = Vehicle.query.filter(
             Vehicle.plate == normalized_plate,
@@ -940,23 +989,50 @@ def update_vehicle(vehicle_id):
         ).first()
 
         if existing_vehicle_plate:
-            return error_response("A vehicle with this plate already exists", 409)
+            return error_response(
+                "A vehicle with this plate already exists",
+                409
+            )
 
         vehicle.plate = normalized_plate
 
-    if "vin" in data:
-        normalized_vin = data.get("vin").upper().strip() if data.get("vin") else None
 
-        if normalized_vin and normalized_vin != vehicle.vin:
+    # --------------------------------------------------
+    # VIN
+    # --------------------------------------------------
+
+    if "vin" in data:
+
+        normalized_vin = (
+            data.get("vin")
+            .upper()
+            .strip()
+            if data.get("vin")
+            else None
+        )
+
+        if (
+            normalized_vin
+            and normalized_vin != vehicle.vin
+        ):
+
             existing_vehicle_vin = Vehicle.query.filter(
                 Vehicle.vin == normalized_vin,
                 Vehicle.id != vehicle.id
             ).first()
 
             if existing_vehicle_vin:
-                return error_response("A vehicle with this VIN already exists", 409)
+                return error_response(
+                    "A vehicle with this VIN already exists",
+                    409
+                )
 
         vehicle.vin = normalized_vin
+
+
+    # --------------------------------------------------
+    # NORMAL EDITABLE FIELDS
+    # --------------------------------------------------
 
     editable_fields = [
         "brand",
@@ -971,11 +1047,29 @@ def update_vehicle(vehicle_id):
     ]
 
     for field in editable_fields:
+
         if field in data:
-            setattr(vehicle, field, data[field])
+            setattr(
+                vehicle,
+                field,
+                data[field]
+            )
+
+
+    # --------------------------------------------------
+    # FIRST REGISTRATION DATE
+    # --------------------------------------------------
 
     if "first_registration_date" in data:
-        vehicle.first_registration_date = parse_date(data.get("first_registration_date"))
+
+        vehicle.first_registration_date = parse_date(
+            data.get("first_registration_date")
+        )
+
+
+    # --------------------------------------------------
+    # SAVE
+    # --------------------------------------------------
 
     db.session.commit()
 
