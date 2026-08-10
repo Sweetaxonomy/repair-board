@@ -26,54 +26,17 @@ import * as XLSX from "xlsx";
 
 import { apiFetch } from "../services/api";
 
+import {
+  buildVehiclePayload,
+  EMPTY_VEHICLE_FORM,
+  FUEL_OPTIONS,
+  getFuelLabel,
+  normalizePlate,
+  validateVehicleForm,
+  VehicleForm,
+} from "../components/VehicleForm";
+
 import "./Vehicle-List.css";
-
-
-// =========================================================
-// VALIDATION
-// =========================================================
-
-const MAX_PLATE_LENGTH = 20;
-
-const VIN_REGEX =
-  /^[A-HJ-NPR-Z0-9]{17}$/;
-
-
-// =========================================================
-// FUEL TYPES
-// =========================================================
-
-const FUEL_OPTIONS = [
-  {
-    value: "gasoline",
-    label: "Gasoline",
-  },
-  {
-    value: "diesel",
-    label: "Diesel",
-  },
-  {
-    value: "hybrid",
-    label: "Hybrid",
-  },
-  {
-    value: "plug_in_hybrid",
-    label: "Plug-in hybrid",
-  },
-  {
-    value: "electric",
-    label: "Electric",
-  },
-  {
-    value: "lpg",
-    label: "LPG",
-  },
-];
-
-const VALID_FUEL_TYPES =
-  FUEL_OPTIONS.map(
-    (fuel) => fuel.value
-  );
 
 
 // =========================================================
@@ -100,22 +63,6 @@ const INITIAL_VISIBILITY = {
   registration: false,
 };
 
-const INITIAL_VEHICLE_FORM = {
-  customer_id: "",
-  plate: "",
-  vin: "",
-  brand: "",
-  model: "",
-  version: "",
-  year: "",
-  fuel_type: "gasoline",
-  power_hp: "",
-  engine_cc: "",
-  color: "",
-  mileage: "",
-  first_registration_date: "",
-};
-
 const COLUMN_OPTIONS = [
   {
     key: "vehicle",
@@ -139,29 +86,6 @@ const COLUMN_OPTIONS = [
 // =========================================================
 // HELPERS
 // =========================================================
-
-const normalizePlate = (
-  value = ""
-) => {
-  return value
-    .trim()
-    .toUpperCase();
-};
-
-
-const getFuelLabel = (
-  fuelValue
-) => {
-  return (
-    FUEL_OPTIONS.find(
-      (fuel) =>
-        fuel.value === fuelValue
-    )?.label ||
-    fuelValue ||
-    "Not specified"
-  );
-};
-
 
 const getCustomerName = (
   customer
@@ -466,7 +390,7 @@ export default function VehicleList() {
     formState,
     setFormState,
   ] = useState(
-    INITIAL_VEHICLE_FORM
+    EMPTY_VEHICLE_FORM
   );
 
   const [
@@ -1153,7 +1077,7 @@ export default function VehicleList() {
   // FORM CHANGE
   // =======================================================
 
-  const handleInputChange = (
+  const handleVehicleFormChange = (
     event
   ) => {
 
@@ -1163,39 +1087,10 @@ export default function VehicleList() {
     } = event.target;
 
 
-    let nextValue =
-      value;
-
-
-    if (
-      name === "plate"
-    ) {
-
-      nextValue =
-        value.toUpperCase();
-    }
-
-
-    if (
-      name === "vin"
-    ) {
-
-      nextValue =
-        value
-          .replace(
-            /\s/g,
-            ""
-          )
-          .toUpperCase();
-    }
-
-
     setFormState(
       (currentForm) => ({
         ...currentForm,
-
-        [name]:
-          nextValue,
+        [name]: value,
       })
     );
 
@@ -1207,9 +1102,7 @@ export default function VehicleList() {
       setFormErrors(
         (currentErrors) => ({
           ...currentErrors,
-
-          [name]:
-            undefined,
+          [name]: undefined,
         })
       );
     }
@@ -1217,264 +1110,6 @@ export default function VehicleList() {
 
     setModalError("");
   };
-
-
-  // =======================================================
-  // VALIDATE VEHICLE
-  // =======================================================
-
-  const validateVehicle =
-    () => {
-
-      const nextErrors =
-        {};
-
-
-      if (
-        !formState.customer_id
-      ) {
-
-        nextErrors.customer_id =
-          "Select a customer.";
-      }
-
-
-      const plate =
-        normalizePlate(
-          formState.plate
-        );
-
-
-      if (!plate) {
-
-        nextErrors.plate =
-          "Plate is required.";
-
-      } else if (
-        plate.length >
-        MAX_PLATE_LENGTH
-      ) {
-
-        nextErrors.plate =
-          `Plate cannot exceed ${MAX_PLATE_LENGTH} characters.`;
-      }
-
-
-      const vin =
-        (
-          formState.vin ||
-          ""
-        )
-          .trim()
-          .toUpperCase();
-
-
-      if (
-        vin &&
-        !VIN_REGEX.test(vin)
-      ) {
-
-        nextErrors.vin =
-          "Invalid VIN. It must have 17 characters and no I/O/Q.";
-      }
-
-
-      if (
-        !(
-          formState.brand ||
-          ""
-        ).trim()
-      ) {
-
-        nextErrors.brand =
-          "Brand is required.";
-      }
-
-
-      if (
-        !(
-          formState.model ||
-          ""
-        ).trim()
-      ) {
-
-        nextErrors.model =
-          "Model is required.";
-      }
-
-
-      if (
-        !formState.fuel_type ||
-        !VALID_FUEL_TYPES.includes(
-          formState.fuel_type
-        )
-      ) {
-
-        nextErrors.fuel_type =
-          "Select a valid fuel type.";
-      }
-
-
-      const year =
-        Number(
-          formState.year
-        );
-
-
-      const currentYear =
-        new Date()
-          .getFullYear();
-
-
-      if (
-        formState.year !== "" &&
-        (
-          Number.isNaN(year) ||
-          year < 1900 ||
-          year >
-            currentYear + 1
-        )
-      ) {
-
-        nextErrors.year =
-          `Enter a year between 1900 and ${currentYear + 1}.`;
-      }
-
-
-      const mileage =
-        Number(
-          formState.mileage
-        );
-
-
-      if (
-        formState.mileage !== "" &&
-        (
-          Number.isNaN(
-            mileage
-          ) ||
-          mileage < 0
-        )
-      ) {
-
-        nextErrors.mileage =
-          "Mileage must be zero or a positive number.";
-      }
-
-
-      const powerHp =
-        Number(
-          formState.power_hp
-        );
-
-
-      if (
-        formState.power_hp !== "" &&
-        (
-          Number.isNaN(
-            powerHp
-          ) ||
-          powerHp <= 0 ||
-          !Number.isInteger(
-            powerHp
-          )
-        )
-      ) {
-
-        nextErrors.power_hp =
-          "Enter power in whole HP. Example: 150.";
-      }
-
-
-      const engineCc =
-        Number(
-          formState.engine_cc
-        );
-
-
-      if (
-        formState.engine_cc !== "" &&
-        (
-          Number.isNaN(
-            engineCc
-          ) ||
-          engineCc <= 0 ||
-          !Number.isInteger(
-            engineCc
-          )
-        )
-      ) {
-
-        nextErrors.engine_cc =
-          "Enter displacement in whole cc. Example: 1800 for a 1.8 L engine.";
-      }
-
-
-      if (
-        formState
-          .first_registration_date
-      ) {
-
-        const registrationDate =
-          new Date(
-            `${formState.first_registration_date}T00:00:00`
-          );
-
-
-        const today =
-          new Date();
-
-
-        today.setHours(
-          0,
-          0,
-          0,
-          0
-        );
-
-
-        const vehicleYear =
-          Number(
-            formState.year
-          );
-
-
-        const registrationYear =
-          registrationDate
-            .getFullYear();
-
-
-        if (
-          Number.isNaN(
-            registrationDate
-              .getTime()
-          ) ||
-          registrationDate >
-            today
-        ) {
-
-          nextErrors
-            .first_registration_date =
-            "Registration date cannot be in the future.";
-
-        } else if (
-          formState.year !== "" &&
-          !Number.isNaN(
-            vehicleYear
-          ) &&
-          registrationYear <
-            vehicleYear
-        ) {
-
-          nextErrors
-            .first_registration_date =
-            `Registration date cannot be earlier than the manufacturing year (${vehicleYear}).`;
-        }
-      }
-
-
-      return nextErrors;
-    };
 
 
   // =======================================================
@@ -1489,7 +1124,7 @@ export default function VehicleList() {
       );
 
       setFormState(
-        INITIAL_VEHICLE_FORM
+        EMPTY_VEHICLE_FORM
       );
 
       setFormErrors({});
@@ -1586,7 +1221,7 @@ export default function VehicleList() {
       );
 
       setFormState(
-        INITIAL_VEHICLE_FORM
+        EMPTY_VEHICLE_FORM
       );
 
       setFormErrors({});
@@ -1620,7 +1255,7 @@ export default function VehicleList() {
 
 
       const validationErrors =
-        validateVehicle();
+        validateVehicleForm(formState);
 
 
       if (
@@ -1650,77 +1285,10 @@ export default function VehicleList() {
         setError("");
 
 
-        const body = {
-
-          customer_id:
-            Number(
-              formState.customer_id
-            ),
-
-          plate:
-            normalizePlate(
-              formState.plate
-            ),
-
-          vin:
-            formState.vin.trim()
-              ? formState.vin
-                  .trim()
-                  .toUpperCase()
-              : null,
-
-          brand:
-            formState.brand
-              .trim(),
-
-          model:
-            formState.model
-              .trim(),
-
-          version:
-            formState.version.trim()
-              || null,
-
-          year:
-            formState.year !== ""
-              ? Number(
-                  formState.year
-                )
-              : null,
-
-          fuel_type:
-            formState.fuel_type,
-
-          power_hp:
-            formState.power_hp !== ""
-              ? Number(
-                  formState.power_hp
-                )
-              : null,
-
-          engine_cc:
-            formState.engine_cc !== ""
-              ? Number(
-                  formState.engine_cc
-                )
-              : null,
-
-          color:
-            formState.color.trim()
-              || null,
-
-          mileage:
-            formState.mileage !== ""
-              ? Number(
-                  formState.mileage
-                )
-              : 0,
-
-          first_registration_date:
+        const body =
+          buildVehiclePayload(
             formState
-              .first_registration_date
-              || null,
-        };
+          );
 
 
         const path =
@@ -1750,7 +1318,7 @@ export default function VehicleList() {
         setEditingVehicle(null);
 
         setFormState(
-          INITIAL_VEHICLE_FORM
+          EMPTY_VEHICLE_FORM
         );
 
         setFormErrors({});
@@ -2930,501 +2498,15 @@ export default function VehicleList() {
                 )}
 
 
-                {/* OWNER */}
-
-                <div className="mb-4">
-
-                  <p className="vehicle-form-section-title">
-                    Owner
-                  </p>
-
-
-                  <label
-                    className="form-label fw-semibold"
-                    htmlFor="vehicle-customer"
-                  >
-                    Customer *
-                  </label>
-
-
-                  <select
-                    id="vehicle-customer"
-                    name="customer_id"
-                    className={`form-select ${
-                      formErrors.customer_id
-                        ? "is-invalid"
-                        : ""
-                    }`}
-                    value={formState.customer_id}
-                    onChange={handleInputChange}
-                    disabled={saving}
-                  >
-
-                    <option value="">
-                      Select customer
-                    </option>
-
-
-                    {customers.map(
-                      (customer) => (
-
-                        <option
-                          key={customer.id}
-                          value={customer.id}
-                        >
-                          {getCustomerName(
-                            customer
-                          )}
-
-                          {customer.dni
-                            ? ` · ${customer.dni}`
-                            : ""}
-                        </option>
-
-                      )
-                    )}
-
-                  </select>
-
-
-                  {formErrors.customer_id && (
-                    <div className="invalid-feedback">
-                      {formErrors.customer_id}
-                    </div>
-                  )}
-
-                </div>
-
-
-                {/* VEHICLE IDENTIFICATION */}
-
-                <div className="vehicle-form-section">
-
-                  <p className="vehicle-form-section-title">
-                    Vehicle identification
-                  </p>
-
-
-                  <div className="row g-3">
-
-                    <div className="col-12 col-md-6">
-
-                      <label className="form-label fw-semibold">
-                        Plate *
-                      </label>
-
-                      <input
-                        type="text"
-                        name="plate"
-                        className={`form-control text-uppercase ${
-                          formErrors.plate
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        placeholder="Example: 1234 ABC or AB-123-CD"
-                        maxLength={MAX_PLATE_LENGTH}
-                        value={formState.plate}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
-
-                      {formErrors.plate && (
-                        <div className="invalid-feedback">
-                          {formErrors.plate}
-                        </div>
-                      )}
-
-                    </div>
-
-
-                    <div className="col-12 col-md-6">
-
-                      <label className="form-label fw-semibold">
-                        VIN / Chassis number
-                      </label>
-
-                      <input
-                        type="text"
-                        name="vin"
-                        className={`form-control text-uppercase ${
-                          formErrors.vin
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        placeholder="17 characters"
-                        maxLength={17}
-                        value={formState.vin}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
-
-                      {formErrors.vin && (
-                        <div className="invalid-feedback">
-                          {formErrors.vin}
-                        </div>
-                      )}
-
-                    </div>
-
-
-                    <div className="col-12 col-md-6">
-
-                      <label className="form-label fw-semibold">
-                        Brand *
-                      </label>
-
-                      <input
-                        type="text"
-                        name="brand"
-                        className={`form-control ${
-                          formErrors.brand
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        placeholder="Example: Mazda"
-                        value={formState.brand}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
-
-                      {formErrors.brand && (
-                        <div className="invalid-feedback">
-                          {formErrors.brand}
-                        </div>
-                      )}
-
-                    </div>
-
-
-                    <div className="col-12 col-md-6">
-
-                      <label className="form-label fw-semibold">
-                        Model *
-                      </label>
-
-                      <input
-                        type="text"
-                        name="model"
-                        className={`form-control ${
-                          formErrors.model
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        placeholder="Example: 6"
-                        value={formState.model}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
-
-                      {formErrors.model && (
-                        <div className="invalid-feedback">
-                          {formErrors.model}
-                        </div>
-                      )}
-
-                    </div>
-
-
-                    <div className="col-12">
-
-                      <label className="form-label fw-semibold">
-                        Version
-                      </label>
-
-                      <input
-                        type="text"
-                        name="version"
-                        className="form-control"
-                        placeholder="Example: Sport"
-                        value={formState.version}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-                {/* TECHNICAL INFORMATION */}
-
-                <div className="vehicle-form-section">
-
-                  <p className="vehicle-form-section-title">
-                    Technical information
-                  </p>
-
-
-                  <div className="row g-3">
-
-                    <div className="col-12 col-sm-6 col-lg-3">
-
-                      <label className="form-label fw-semibold">
-                        Year
-                      </label>
-
-                      <input
-                        type="number"
-                        name="year"
-                        className={`form-control ${
-                          formErrors.year
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        min="1900"
-                        max={
-                          new Date()
-                            .getFullYear() + 1
-                        }
-                        value={formState.year}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
-
-                      {formErrors.year && (
-                        <div className="invalid-feedback">
-                          {formErrors.year}
-                        </div>
-                      )}
-
-                    </div>
-
-
-                    <div className="col-12 col-sm-6 col-lg-3">
-
-                      <label className="form-label fw-semibold">
-                        Fuel *
-                      </label>
-
-                      <select
-                        name="fuel_type"
-                        className={`form-select ${
-                          formErrors.fuel_type
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        value={formState.fuel_type}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      >
-
-                        {FUEL_OPTIONS.map(
-                          (fuel) => (
-
-                            <option
-                              key={fuel.value}
-                              value={fuel.value}
-                            >
-                              {fuel.label}
-                            </option>
-
-                          )
-                        )}
-
-                      </select>
-
-                      {formErrors.fuel_type && (
-                        <div className="invalid-feedback">
-                          {formErrors.fuel_type}
-                        </div>
-                      )}
-
-                    </div>
-
-
-                    <div className="col-12 col-sm-6 col-lg-3">
-
-                      <label className="form-label fw-semibold">
-                        Power
-                      </label>
-
-                      <div className="input-group has-validation">
-
-                        <input
-                          type="number"
-                          name="power_hp"
-                          min="1"
-                          step="1"
-                          placeholder="150"
-                          className={`form-control ${
-                            formErrors.power_hp
-                              ? "is-invalid"
-                              : ""
-                          }`}
-                          value={formState.power_hp}
-                          onChange={handleInputChange}
-                          disabled={saving}
-                        />
-
-                        <span className="input-group-text">
-                          HP
-                        </span>
-
-                        {formErrors.power_hp && (
-                          <div className="invalid-feedback">
-                            {formErrors.power_hp}
-                          </div>
-                        )}
-
-                      </div>
-
-                      <div className="form-text">
-                        Example: 90, 120, 150 or 200 HP.
-                      </div>
-
-                    </div>
-
-
-                    <div className="col-12 col-sm-6 col-lg-3">
-
-                      <label className="form-label fw-semibold">
-                        Engine displacement
-                      </label>
-
-                      <div className="input-group has-validation">
-
-                        <input
-                          type="number"
-                          name="engine_cc"
-                          min="1"
-                          step="1"
-                          placeholder="1800"
-                          className={`form-control ${
-                            formErrors.engine_cc
-                              ? "is-invalid"
-                              : ""
-                          }`}
-                          value={formState.engine_cc}
-                          onChange={handleInputChange}
-                          disabled={saving}
-                        />
-
-                        <span className="input-group-text">
-                          cc
-                        </span>
-
-                        {formErrors.engine_cc && (
-                          <div className="invalid-feedback">
-                            {formErrors.engine_cc}
-                          </div>
-                        )}
-
-                      </div>
-
-                      <div className="form-text">
-                        Example: 1800 cc ≈ 1.8 L. Leave blank if not applicable.
-                      </div>
-
-                    </div>
-
-
-                    <div className="col-12 col-md-6">
-
-                      <label className="form-label fw-semibold">
-                        Color
-                      </label>
-
-                      <input
-                        type="text"
-                        name="color"
-                        className="form-control"
-                        placeholder="Example: White"
-                        value={formState.color}
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
-
-                    </div>
-
-
-                    <div className="col-12 col-md-6">
-
-                      <label className="form-label fw-semibold">
-                        Mileage
-                      </label>
-
-                      <div className="input-group">
-
-                        <input
-                          type="number"
-                          name="mileage"
-                          min="0"
-                          className={`form-control ${
-                            formErrors.mileage
-                              ? "is-invalid"
-                              : ""
-                          }`}
-                          value={formState.mileage}
-                          onChange={handleInputChange}
-                          disabled={saving}
-                        />
-
-                        <span className="input-group-text">
-                          km
-                        </span>
-
-                      </div>
-
-                      {formErrors.mileage && (
-                        <div className="text-danger small mt-1">
-                          {formErrors.mileage}
-                        </div>
-                      )}
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-                {/* REGISTRATION */}
-
-                <div className="vehicle-form-section">
-
-                  <p className="vehicle-form-section-title">
-                    Registration
-                  </p>
-
-
-                  <div className="row">
-
-                    <div className="col-12 col-md-6">
-
-                      <label className="form-label fw-semibold">
-                        First registration date
-                      </label>
-
-                      <input
-                        type="date"
-                        name="first_registration_date"
-                        className={`form-control ${
-                          formErrors.first_registration_date
-                            ? "is-invalid"
-                            : ""
-                        }`}
-                        value={
-                          formState.first_registration_date
-                        }
-                        onChange={handleInputChange}
-                        disabled={saving}
-                      />
-
-                      {formErrors.first_registration_date && (
-                        <div className="invalid-feedback">
-                          {
-                            formErrors.first_registration_date
-                          }
-                        </div>
-                      )}
-
-                    </div>
-
-                  </div>
-
-                </div>
+                <VehicleForm
+                  formData={formState}
+                  errors={formErrors}
+                  disabled={saving}
+                  onChange={handleVehicleFormChange}
+                  customers={customers}
+                  showOwnerField
+                  idPrefix="vehicle-modal"
+                />
 
               </div>
 
