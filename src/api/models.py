@@ -401,6 +401,11 @@ class Service(db.Model):
                 if self.customer
                 else None
             ),
+            "customer_phone": (
+                self.customer.phone
+                if self.customer
+                else None
+            ),
             "employee_name": (
                 f"{self.employee.first_name} {self.employee.last_name}"
                 if self.employee
