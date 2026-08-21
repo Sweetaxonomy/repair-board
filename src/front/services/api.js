@@ -18,7 +18,106 @@ const API_BASE_URL =
 
 
 // =========================================================
-// 2. FUNCTION TO READ PUBLIC RESPONSES
+// 2. SESSION MANAGEMENT
+// =========================================================
+
+let expirationTimer = null;
+
+
+function clearStoredSession() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("employee");
+  localStorage.removeItem("workshop");
+}
+
+
+export function logoutUser() {
+  if (expirationTimer) {
+    clearTimeout(expirationTimer);
+    expirationTimer = null;
+  }
+
+  clearStoredSession();
+
+  window.location.replace("/");
+}
+
+
+function getTokenExpiration(token) {
+  try {
+    const tokenParts = token.split(".");
+
+    if (tokenParts.length !== 3) {
+      return null;
+    }
+
+    const payload = tokenParts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+    const decodedPayload = JSON.parse(
+      atob(payload)
+    );
+
+    if (!decodedPayload.exp) {
+      return null;
+    }
+
+    return decodedPayload.exp * 1000;
+  } catch (error) {
+    console.error(
+      "Could not read token expiration:",
+      error
+    );
+
+    return null;
+  }
+}
+
+
+export function scheduleTokenExpiration() {
+  if (expirationTimer) {
+    clearTimeout(expirationTimer);
+    expirationTimer = null;
+  }
+
+  const token =
+    localStorage.getItem("token");
+
+  if (!token) {
+    return;
+  }
+
+  const expirationTime =
+    getTokenExpiration(token);
+
+  if (!expirationTime) {
+    return;
+  }
+
+  const remainingTime =
+    expirationTime - Date.now();
+
+  if (remainingTime <= 0) {
+    logoutUser();
+    return;
+  }
+
+  expirationTimer = setTimeout(() => {
+    logoutUser();
+  }, remainingTime);
+}
+
+
+// If the application is refreshed while the user
+// already has a token, recreate the expiration timer.
+
+scheduleTokenExpiration();
+
+
+// =========================================================
+// 3. FUNCTION TO READ PUBLIC RESPONSES
 // =========================================================
 
 async function parseResponse(response) {
@@ -34,7 +133,7 @@ async function parseResponse(response) {
 
 
 // =========================================================
-// 3. WORKSHOP REGISTRATION
+// 4. WORKSHOP REGISTRATION
 // =========================================================
 
 export async function registerWorkshop(payload) {
@@ -42,11 +141,9 @@ export async function registerWorkshop(payload) {
     `${API_BASE_URL}/register`,
     {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify(payload),
     }
   );
@@ -56,7 +153,7 @@ export async function registerWorkshop(payload) {
 
 
 // =========================================================
-// 4. USER LOGIN
+// 5. USER LOGIN
 // =========================================================
 
 export async function loginUser(
@@ -67,11 +164,9 @@ export async function loginUser(
     `${API_BASE_URL}/login`,
     {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify({
         email: email,
         password: password,
@@ -84,7 +179,7 @@ export async function loginUser(
 
 
 // =========================================================
-// 5. FORGOT PASSWORD
+// 6. FORGOT PASSWORD
 // =========================================================
 
 export async function forgotPassword(email) {
@@ -92,11 +187,9 @@ export async function forgotPassword(email) {
     `${API_BASE_URL}/forgot-password`,
     {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify({
         email: email,
       }),
@@ -108,7 +201,7 @@ export async function forgotPassword(email) {
 
 
 // =========================================================
-// 6. RESET PASSWORD
+// 7. RESET PASSWORD
 // =========================================================
 
 export async function resetPassword(
@@ -120,11 +213,9 @@ export async function resetPassword(
     `${API_BASE_URL}/reset-password`,
     {
       method: "POST",
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify({
         token: token,
         password: password,
@@ -138,7 +229,7 @@ export async function resetPassword(
 
 
 // =========================================================
-// 7. REQUESTS TO PROTECTED ENDPOINTS
+// 8. REQUESTS TO PROTECTED ENDPOINTS
 // =========================================================
 
 export async function apiFetch(
@@ -165,7 +256,6 @@ export async function apiFetch(
     {
       method: method,
       headers: headers,
-
       body:
         body !== undefined
           ? JSON.stringify(body)
@@ -175,6 +265,17 @@ export async function apiFetch(
 
   const data =
     await response.json().catch(() => ({}));
+
+  // If the backend says the token is no longer valid,
+  // automatically close the session.
+
+  if (response.status === 401 && token) {
+    logoutUser();
+
+    throw new Error(
+      "Your session has expired."
+    );
+  }
 
   if (!response.ok) {
     const errorMessage =
@@ -191,7 +292,7 @@ export async function apiFetch(
 
 
 // =========================================================
-// 8. CUSTOMERS
+// 9. CUSTOMERS
 // =========================================================
 
 export async function getCustomers() {
@@ -237,7 +338,7 @@ export async function deactivateCustomer(
 
 
 // =========================================================
-// 9. SERVICE STATUS HISTORY
+// 10. SERVICE STATUS HISTORY
 // =========================================================
 
 export async function getServiceStatusLogs(
@@ -250,7 +351,7 @@ export async function getServiceStatusLogs(
 
 
 // =========================================================
-// 10. UPDATE A SERVICE COMMENT
+// 11. UPDATE A SERVICE COMMENT
 // =========================================================
 
 export async function updateServiceComment(
@@ -269,7 +370,7 @@ export async function updateServiceComment(
 
 
 // =========================================================
-// 11. DELETE A SERVICE COMMENT
+// 12. DELETE A SERVICE COMMENT
 // =========================================================
 
 export async function deleteServiceComment(
@@ -286,7 +387,7 @@ export async function deleteServiceComment(
 
 
 // =========================================================
-// 12. CANCEL A SERVICE
+// 13. CANCEL A SERVICE
 // =========================================================
 
 export async function cancelService(
@@ -297,7 +398,6 @@ export async function cancelService(
     `/services/${serviceId}/cancel`,
     {
       method: "PATCH",
-
       body: {
         reason: reason,
       },
@@ -307,7 +407,7 @@ export async function cancelService(
 
 
 // =========================================================
-// 13. PERMANENTLY DELETE A SERVICE
+// 14. PERMANENTLY DELETE A SERVICE
 // =========================================================
 
 export async function permanentlyDeleteService(
@@ -317,7 +417,6 @@ export async function permanentlyDeleteService(
     `/services/${serviceId}`,
     {
       method: "DELETE",
-
       body: {
         confirm: true,
       },

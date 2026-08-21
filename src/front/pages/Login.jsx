@@ -1,13 +1,23 @@
 import { useState } from "react";
+
 import {
   Eye,
   EyeOff,
   LogIn,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
 
 import littleLogo from "../assets/img/little_logo.png";
-import { loginUser } from "../services/api";
+
+import {
+  loginUser,
+  scheduleTokenExpiration,
+} from "../services/api";
+
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -26,6 +36,7 @@ export const Login = () => {
 
   const [loading, setLoading] =
     useState(false);
+
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -68,6 +79,9 @@ export const Login = () => {
         return;
       }
 
+
+      // Save the authenticated session.
+
       localStorage.setItem(
         "token",
         data.token
@@ -83,6 +97,7 @@ export const Login = () => {
         JSON.stringify(data.employee)
       );
 
+
       if (data.workshop) {
         localStorage.setItem(
           "workshop",
@@ -90,9 +105,20 @@ export const Login = () => {
         );
       }
 
-      navigate("/dashboard", {
-        replace: true,
-      });
+
+      // Read the JWT expiration time and
+      // automatically schedule the logout.
+
+      scheduleTokenExpiration();
+
+
+      navigate(
+        "/dashboard",
+        {
+          replace: true,
+        }
+      );
+
     } catch (error) {
       console.error(
         "Login error:",
@@ -102,26 +128,33 @@ export const Login = () => {
       setError(
         "Failed to connect to the server."
       );
+
     } finally {
       setLoading(false);
     }
   };
 
+
   return (
     <div className="container py-5 flex-grow-1 d-flex align-items-center">
+
       <div className="row justify-content-center w-100">
+
         <div className="col-12 col-sm-10 col-md-7 col-lg-5">
+
           <section className="card border-0 shadow-sm rounded-4 overflow-hidden">
 
             {/* Yellow accent */}
 
             <div className="border-top border-warning border-4" />
 
+
             <div className="card-body p-4 p-md-5">
 
               {/* Logo and title */}
 
               <div className="text-center mb-4">
+
                 <img
                   src={littleLogo}
                   alt="Workshop Manager logo"
@@ -133,14 +166,18 @@ export const Login = () => {
                   }}
                 />
 
+
                 <h1 className="h2 fw-bold mb-2">
                   Welcome back
                 </h1>
 
+
                 <p className="text-secondary mb-0">
                   Sign in to manage your workshop.
                 </p>
+
               </div>
+
 
               {/* Error */}
 
@@ -153,16 +190,20 @@ export const Login = () => {
                 </div>
               )}
 
+
               {/* Form */}
 
               <form onSubmit={handleLogin}>
+
                 <div className="mb-3">
+
                   <label
                     className="form-label fw-semibold"
                     htmlFor="login-email"
                   >
                     Email address
                   </label>
+
 
                   <input
                     id="login-email"
@@ -181,9 +222,12 @@ export const Login = () => {
                       setError("");
                     }}
                   />
+
                 </div>
 
+
                 <div className="mb-2">
+
                   <label
                     className="form-label fw-semibold"
                     htmlFor="login-password"
@@ -191,7 +235,9 @@ export const Login = () => {
                     Password
                   </label>
 
+
                   <div className="input-group input-group-lg">
+
                     <input
                       id="login-password"
                       type={
@@ -213,6 +259,7 @@ export const Login = () => {
                         setError("");
                       }}
                     />
+
 
                     <button
                       type="button"
@@ -239,19 +286,26 @@ export const Login = () => {
                         <Eye size={19} />
                       )}
                     </button>
+
                   </div>
+
                 </div>
 
+
                 <div className="text-end mb-4">
+
                   <Link
                     to="/forgot-password"
                     className="link-dark small fw-semibold text-decoration-none"
                   >
                     Forgot your password?
                   </Link>
+
                 </div>
 
+
                 <div className="d-grid">
+
                   <button
                     type="submit"
                     className="btn btn-warning btn-lg fw-bold rounded-3"
@@ -277,15 +331,20 @@ export const Login = () => {
                       </>
                     )}
                   </button>
+
                 </div>
+
               </form>
+
 
               {/* Register */}
 
               <div className="text-center border-top mt-4 pt-4">
+
                 <span className="text-secondary">
                   Don&apos;t have an account?{" "}
                 </span>
+
 
                 <Link
                   to="/register"
@@ -293,11 +352,17 @@ export const Login = () => {
                 >
                   Create a workshop
                 </Link>
+
               </div>
+
             </div>
+
           </section>
+
         </div>
+
       </div>
+
     </div>
   );
 };

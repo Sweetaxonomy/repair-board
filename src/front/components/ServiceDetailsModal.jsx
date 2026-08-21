@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { apiFetch } from "../services/api";
-
+import { BACKEND_URL } from "../config";
 const STATUS_LABELS = {
   pending: "Pending",
   diagnosis: "Diagnosis",
@@ -264,7 +264,7 @@ export function ServiceDetailsModal({
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/services/${serviceId}/comments`,
+        `${BACKEND_URL}/api/services/${serviceId}/comments`,
         {
           method: "POST",
           headers: {

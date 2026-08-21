@@ -3,6 +3,7 @@ import {
   createRoutesFromElements,
   Route,
 } from "react-router-dom";
+
 import { ResetPassword } from "./pages/ResetPassword";
 import { AppLayout } from "./layouts/AppLayout";
 import { DashboardLayout } from "./layouts/DashboardLayout";

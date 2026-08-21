@@ -1,10 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import {
   ArrowRight,
   CarFront,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   History,
   LogIn,
@@ -97,6 +96,20 @@ export const Home = () => {
   const isAuthenticated =
     Boolean(localStorage.getItem("token"));
 
+  const [heroIndex, setHeroIndex] = useState(0);
+
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroIndex((currentIndex) =>
+        (currentIndex + 1) % heroImages.length
+      );
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+
   return (
     <div className="home-page">
 
@@ -106,34 +119,25 @@ export const Home = () => {
 
       <section className="home-hero position-relative overflow-hidden bg-dark">
 
-        {/* Carousel */}
+        {/* Automatic hero images */}
 
-        <div
-          id="homeHeroCarousel"
-          className="carousel slide carousel-fade position-absolute top-0 start-0 w-100 h-100"
-          data-bs-ride="carousel"
-          data-bs-interval="4000"
-          data-bs-pause="false"
-          data-bs-touch="true"
-        >
-          <div className="carousel-inner h-100">
+        <div className="home-hero-slides position-absolute top-0 start-0 w-100 h-100">
 
-            {heroImages.map((image, index) => (
-              <div
-                key={image.src}
-                className={`carousel-item h-100 ${
-                  index === 0 ? "active" : ""
-                }`}
-              >
-                <img
-                  src={image.src}
-                  alt={image.alt}
-                  className="d-block w-100 h-100 home-hero-image"
-                />
-              </div>
-            ))}
+          {heroImages.map((image, index) => (
+            <div
+              key={image.src}
+              className={`home-hero-slide position-absolute top-0 start-0 w-100 h-100 ${
+                index === heroIndex ? "active" : ""
+              }`}
+            >
+              <img
+                src={image.src}
+                alt={image.alt}
+                className="d-block w-100 h-100 home-hero-image"
+              />
+            </div>
+          ))}
 
-          </div>
         </div>
 
 
@@ -212,34 +216,6 @@ export const Home = () => {
 
         </div>
 
-
-        {/* Discreet carousel controls */}
-
-        <div className="home-carousel-controls position-absolute d-flex gap-2">
-
-          <button
-            type="button"
-            className="btn btn-outline-light d-flex align-items-center justify-content-center"
-            data-bs-target="#homeHeroCarousel"
-            data-bs-slide="prev"
-            aria-label="Previous image"
-          >
-            <ChevronLeft size={20} />
-          </button>
-
-
-          <button
-            type="button"
-            className="btn btn-outline-light d-flex align-items-center justify-content-center"
-            data-bs-target="#homeHeroCarousel"
-            data-bs-slide="next"
-            aria-label="Next image"
-          >
-            <ChevronRight size={20} />
-          </button>
-
-        </div>
-
       </section>
 
 
@@ -250,8 +226,6 @@ export const Home = () => {
       <section className="bg-white py-5">
 
         <div className="container py-4 py-lg-5">
-
-          {/* Centered section heading */}
 
           <div className="row justify-content-center text-center mb-5 pb-lg-4">
 
@@ -291,8 +265,6 @@ export const Home = () => {
 
           </div>
 
-
-          {/* Editorial feature rows */}
 
           <div className="border-top border-dark">
 
@@ -366,8 +338,6 @@ export const Home = () => {
 
           <div className="row align-items-stretch">
 
-            {/* Large mechanic */}
-
             <div className="col-12 col-lg-6 position-relative d-none d-lg-flex align-items-end justify-content-center home-mechanic-side">
 
               <img
@@ -378,8 +348,6 @@ export const Home = () => {
 
             </div>
 
-
-            {/* Workflow */}
 
             <div className="col-12 col-lg-6 py-5">
 
