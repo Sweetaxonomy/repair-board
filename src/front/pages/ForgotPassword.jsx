@@ -1,180 +1,268 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import styles from "./Login.module.css";
+import { useState } from "react";
 
-const RAW_BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+import {
+  ArrowLeft,
+  Cog,
+  KeyRound,
+} from "lucide-react";
 
-const API_BASE_URL = RAW_BACKEND_URL.endsWith("/api")
-  ? RAW_BACKEND_URL
-  : `${RAW_BACKEND_URL.replace(/\/$/, "")}/api`;
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  forgotPassword,
+} from "../services/api";
 
 export const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [resetUrl, setResetUrl] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
 
-  const handleForgotPassword = async (event) => {
-    event.preventDefault();
+  const [email, setEmail] =
+    useState("");
 
-    setLoading(true);
-    setError("");
-    setMessage("");
-    setResetUrl("");
+  const [message, setMessage] =
+    useState("");
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          email: email.trim()
-        })
-      });
+  const [resetUrl, setResetUrl] =
+    useState("");
 
-      const data = await response.json();
+  const [error, setError] =
+    useState("");
 
-      if (!response.ok) {
-        setError(data.error || data.message || "Could not create reset link.");
-        return;
-      }
+  const [loading, setLoading] =
+    useState(false);
 
-      setMessage(data.message || "Reset token created successfully.");
+  const handleForgotPassword =
+    async (event) => {
+      event.preventDefault();
 
-      if (data.reset_token) {
-        setResetUrl(
-          `/reset-password?token=${encodeURIComponent(data.reset_token)}`
+      setLoading(true);
+      setError("");
+      setMessage("");
+      setResetUrl("");
+
+      try {
+        const response =
+          await forgotPassword(
+            email.trim()
+          );
+
+        if (!response.ok) {
+          setError(
+            response.data?.error ||
+              response.data?.message ||
+              "Could not process the password recovery request."
+          );
+
+          return;
+        }
+
+        /*
+         * User-friendly message.
+         * We do not expose technical information
+         * about reset tokens in the interface.
+         */
+        setMessage(
+          "If an account exists for this email, you will receive instructions to reset your password."
         );
+
+        /*
+         * DEVELOPMENT ONLY
+         *
+         * Until email delivery is configured,
+         * the backend gives us the reset token
+         * directly so we can test the complete flow.
+         */
+        if (response.data?.reset_token) {
+          const token =
+            encodeURIComponent(
+              response.data.reset_token
+            );
+
+          setResetUrl(
+            `/reset-password?token=${token}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Forgot password error:",
+          error
+        );
+
+        setError(
+          "Connection error. Please try again."
+        );
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Forgot password error:", err);
-      setError("Connection error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   const handleGoToResetPassword = () => {
     if (!resetUrl) return;
-
-    if (resetUrl.startsWith("http")) {
-      window.location.href = resetUrl;
-      return;
-    }
 
     navigate(resetUrl);
   };
 
   return (
-    <div className={`container-fluid min-vh-100 ${styles.loginPage}`}>
-      <div className={`row w-100 justify-content-center align-items-center ${styles.loginRow}`}>
-        <div className={`card border-0 shadow-sm ${styles.loginCard}`}>
-          <div className={styles.cardTopBar}></div>
+    <div className="container py-5 flex-grow-1 d-flex align-items-center">
+      <div className="row justify-content-center w-100">
+        <div className="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
 
-          <div className="card-body p-4 p-md-5">
-            <button
-              type="button"
-              className={`btn ${styles.backButton}`}
-              onClick={() => navigate("/login")}
-              aria-label="Back to login"
-            >
-              <i className="fa-solid fa-arrow-left"></i>
-            </button>
+          <section className="card border-0 shadow-sm rounded-4 overflow-hidden">
 
-            <div className="mb-4">
+            {/* Header */}
 
+            <header className="bg-dark text-white position-relative overflow-hidden p-4 p-md-5 border-bottom border-warning border-4">
 
-              <h2 className={`fw-bold mt-3 mb-1 ${styles.titleHello}`}>
-                Recover password
-              </h2>
+              <Cog
+                className="register-gear register-gear-large text-warning"
+                aria-hidden="true"
+              />
 
-              <p className={styles.subtitle}>
-                Enter your email and we&apos;ll create a reset link for your account.
-              </p>
-            </div>
+              <Cog
+                className="register-gear register-gear-small text-warning"
+                aria-hidden="true"
+              />
 
-            {error && (
-              <div className={`alert py-2 small ${styles.errorAlert}`} role="alert">
-                <i className="fa-solid fa-circle-exclamation me-2"></i>
-                {error}
+              <div className="register-hero-content position-relative">
+                <div className="d-flex align-items-center gap-2 text-warning mb-3">
+                  <KeyRound size={22} />
+
+                  <span className="small fw-bold text-uppercase">
+                    Account recovery
+                  </span>
+                </div>
+
+                <h1 className="h2 fw-bold mb-2">
+                  Recover your password
+                </h1>
+
+                <p className="text-white-50 mb-0">
+                  Enter the email associated with
+                  your Workshop Manager account.
+                </p>
               </div>
-            )}
+            </header>
 
-            {message && (
-              <div className={`alert py-2 small ${styles.successAlert}`} role="alert">
-                <i className="fa-solid fa-circle-check me-2"></i>
-                {message}
-              </div>
-            )}
+            {/* Body */}
 
-            {resetUrl && (
-              <div className={`alert small ${styles.warningAlert}`}>
-                <p className="mb-2 fw-bold">Development reset link:</p>
+            <div className="card-body p-4 p-md-5">
 
-                <button
-                  type="button"
-                  className={`btn btn-sm fw-bold ${styles.devResetButton}`}
-                  onClick={handleGoToResetPassword}
+              {error && (
+                <div
+                  className="alert alert-danger rounded-3"
+                  role="alert"
                 >
-                  Go to reset password
-                </button>
-              </div>
-            )}
+                  {error}
+                </div>
+              )}
 
-            <form onSubmit={handleForgotPassword}>
-              <div className="mb-4">
-                <label className={styles.inputLabel}>Email address</label>
+              {message && (
+                <div
+                  className="alert alert-success rounded-3"
+                  role="alert"
+                >
+                  {message}
+                </div>
+              )}
 
-                <input
-                  type="email"
-                  className={`form-control ${styles.loginInput}`}
-                  placeholder="admin@workshop.com"
-                  value={email}
-                  disabled={loading}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
-                    setError("");
-                    setMessage("");
-                    setResetUrl("");
-                  }}
-                  required
-                />
-              </div>
+              {/* Development helper */}
 
-              <button
-                type="submit"
-                className={`btn w-100 fw-bold ${styles.btnLogin}`}
-                disabled={loading}
+              {resetUrl && (
+                <div
+                  className="alert alert-warning rounded-3"
+                  role="alert"
+                >
+                  <p className="fw-bold mb-1">
+                    Development mode
+                  </p>
+
+                  <p className="small mb-3">
+                    Email delivery is not connected
+                    yet. Continue below to test the
+                    password recovery flow.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="btn btn-dark btn-sm fw-bold"
+                    onClick={
+                      handleGoToResetPassword
+                    }
+                  >
+                    Continue to password reset
+                  </button>
+                </div>
+              )}
+
+              <form
+                onSubmit={
+                  handleForgotPassword
+                }
               >
-                {loading ? (
-                  <>
-                    <span
-                      className="spinner-border spinner-border-sm me-2"
-                      aria-hidden="true"
-                    ></span>
-                    Creating reset link...
-                  </>
-                ) : (
-                  "Create reset link"
-                )}
-              </button>
-            </form>
+                <div className="mb-4">
+                  <label
+                    className="form-label fw-semibold"
+                    htmlFor="forgot-email"
+                  >
+                    Email address
+                  </label>
 
-            <div className="text-center mt-4">
-              <span className={styles.registerText}>
-                Remember your password?{" "}
-              </span>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    className="form-control form-control-lg rounded-3"
+                    placeholder="admin@workshop.com"
+                    value={email}
+                    required
+                    disabled={loading}
+                    autoComplete="email"
+                    onChange={(event) => {
+                      setEmail(
+                        event.target.value
+                      );
 
-              <Link to="/login" className={styles.registerLink}>
-                Log in
-              </Link>
+                      setError("");
+                      setMessage("");
+                      setResetUrl("");
+                    }}
+                  />
+                </div>
+
+                <div className="d-grid">
+                  <button
+                    type="submit"
+                    className="btn btn-warning btn-lg fw-bold rounded-3"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          aria-hidden="true"
+                        />
+
+                        Processing...
+                      </>
+                    ) : (
+                      "Continue"
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              <div className="border-top mt-4 pt-4 text-center">
+                <Link
+                  to="/login"
+                  className="d-inline-flex align-items-center gap-2 link-dark fw-semibold text-decoration-none"
+                >
+                  <ArrowLeft size={17} />
+                  Back to login
+                </Link>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </div>

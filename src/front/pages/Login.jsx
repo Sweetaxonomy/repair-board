@@ -1,195 +1,368 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import styles from "./Login.module.css";
-import little_logo from "../assets/img/little_logo.png";
-import { loginUser } from "../services/api";
+import { useState } from "react";
+
+import {
+  Eye,
+  EyeOff,
+  LogIn,
+} from "lucide-react";
+
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+
+import littleLogo from "../assets/img/little_logo.png";
+
+import {
+  loginUser,
+  scheduleTokenExpiration,
+} from "../services/api";
+
 
 export const Login = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
+
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [email, setEmail] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
+  const [error, setError] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
 
   const handleLogin = async (event) => {
     event.preventDefault();
 
-    setError(null);
+    setError("");
     setLoading(true);
 
     try {
-      const res = await loginUser(email.trim(), password);
+      const response = await loginUser(
+        email.trim(),
+        password
+      );
 
-      if (!res.ok) {
+      if (!response.ok) {
         setError(
-          res.data?.error ||
-          res.data?.message ||
-          "Login failed. Please try again."
+          response.data?.error ||
+            response.data?.message ||
+            "Login failed. Please try again."
         );
+
         return;
       }
 
-      const data = res.data;
+      const data = response.data;
 
-      if (!data.token || !data.user || !data.employee) {
-        setError("Login response is missing token, user or employee data.");
-        console.log("Login response:", data);
+      if (
+        !data.token ||
+        !data.user ||
+        !data.employee
+      ) {
+        console.error(
+          "Login response:",
+          data
+        );
+
+        setError(
+          "Login response is missing required account data."
+        );
+
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("employee", JSON.stringify(data.employee));
+
+      // Save the authenticated session.
+
+      localStorage.setItem(
+        "token",
+        data.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
+
+      localStorage.setItem(
+        "employee",
+        JSON.stringify(data.employee)
+      );
+
 
       if (data.workshop) {
-        localStorage.setItem("workshop", JSON.stringify(data.workshop));
+        localStorage.setItem(
+          "workshop",
+          JSON.stringify(data.workshop)
+        );
       }
 
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Failed to connect to the server.");
+
+      // Read the JWT expiration time and
+      // automatically schedule the logout.
+
+      scheduleTokenExpiration();
+
+
+      navigate(
+        "/dashboard",
+        {
+          replace: true,
+        }
+      );
+
+    } catch (error) {
+      console.error(
+        "Login error:",
+        error
+      );
+
+      setError(
+        "Failed to connect to the server."
+      );
+
     } finally {
       setLoading(false);
     }
   };
 
+
   return (
-    <div className={`container-fluid min-vh-100 ${styles.loginPage}`}>
-      <div className={`row w-100 justify-content-center align-items-center ${styles.loginRow}`}>
-        <div className={`card border-0 shadow-sm ${styles.loginCard}`}>
-          <div className={styles.cardTopBar}></div>
+    <div className="container py-5 flex-grow-1 d-flex align-items-center">
 
-          <div className="card-body p-4 p-md-5">
-            <button
-              type="button"
-              onClick={() => navigate("/")}
-              className={`btn ${styles.backButton}`}
-              aria-label="Back to home"
-            >
-              <i className="fa-solid fa-arrow-left"></i>
-            </button>
+      <div className="row justify-content-center w-100">
 
-            <div className="mb-4 text-center">
+        <div className="col-12 col-sm-10 col-md-7 col-lg-5">
 
-              <div className={styles.loginLogoBox}>
-                <img src={little_logo} alt="Workshop Manager simple logo" className={styles.loginLogo} />
-              </div>
+          <section className="card border-0 shadow-sm rounded-4 overflow-hidden">
 
-              <h2 className={`fw-bold mt-4 mb-1 ${styles.titleHello}`}>
-                Hello there!
-              </h2>
+            {/* Yellow accent */}
 
-              <p className={styles.subtitle}>
-                Welcome back to your workshop
-              </p>
-            </div>
+            <div className="border-top border-warning border-4" />
 
-            {error && (
-              <div className={`alert py-2 small ${styles.errorAlert}`} role="alert">
-                <i className="fa-solid fa-circle-exclamation me-2"></i>
-                {error}
-              </div>
-            )}
 
-            <form onSubmit={handleLogin}>
-              <div className="mb-3">
-                <label className={styles.inputLabel}>Email address</label>
+            <div className="card-body p-4 p-md-5">
 
-                <input
-                  type="email"
-                  className={`form-control ${styles.loginInput}`}
-                  placeholder="admin@workshop.com"
-                  value={email}
-                  required
-                  disabled={loading}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
-                    setError(null);
+              {/* Logo and title */}
+
+              <div className="text-center mb-4">
+
+                <img
+                  src={littleLogo}
+                  alt="Workshop Manager logo"
+                  className="img-fluid mb-4"
+                  style={{
+                    width: "82px",
+                    height: "82px",
+                    objectFit: "contain",
                   }}
                 />
+
+
+                <h1 className="h2 fw-bold mb-2">
+                  Welcome back
+                </h1>
+
+
+                <p className="text-secondary mb-0">
+                  Sign in to manage your workshop.
+                </p>
+
               </div>
 
-              <div className="mb-2">
-                <label className={styles.inputLabel}>Password</label>
 
-                <div className="position-relative">
+              {/* Error */}
+
+              {error && (
+                <div
+                  className="alert alert-danger rounded-3"
+                  role="alert"
+                >
+                  {error}
+                </div>
+              )}
+
+
+              {/* Form */}
+
+              <form onSubmit={handleLogin}>
+
+                <div className="mb-3">
+
+                  <label
+                    className="form-label fw-semibold"
+                    htmlFor="login-email"
+                  >
+                    Email address
+                  </label>
+
+
                   <input
-                    type={showPassword ? "text" : "password"}
-                    className={`form-control ${styles.loginInput} ${styles.passwordInput}`}
-                    placeholder="Enter your password"
-                    value={password}
+                    id="login-email"
+                    type="email"
+                    className="form-control form-control-lg rounded-3"
+                    placeholder="admin@workshop.com"
+                    value={email}
                     required
                     disabled={loading}
+                    autoComplete="email"
                     onChange={(event) => {
-                      setPassword(event.target.value);
-                      setError(null);
+                      setEmail(
+                        event.target.value
+                      );
+
+                      setError("");
                     }}
                   />
 
-                  <button
-                    type="button"
-                    className={`btn position-absolute top-50 end-0 translate-middle-y ${styles.passwordEye}`}
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
-                    aria-label="Show or hide password"
-                  >
-                    <i
-                      className={`fa-solid ${showPassword ? "fa-eye" : "fa-eye-slash"
-                        }`}
-                    ></i>
-                  </button>
                 </div>
-              </div>
 
-              {/* TODO: Add Forgot Password
-              <div className="text-end mb-4">
+
+                <div className="mb-2">
+
+                  <label
+                    className="form-label fw-semibold"
+                    htmlFor="login-password"
+                  >
+                    Password
+                  </label>
+
+
+                  <div className="input-group input-group-lg">
+
+                    <input
+                      id="login-password"
+                      type={
+                        showPassword
+                          ? "text"
+                          : "password"
+                      }
+                      className="form-control"
+                      placeholder="Enter your password"
+                      value={password}
+                      required
+                      disabled={loading}
+                      autoComplete="current-password"
+                      onChange={(event) => {
+                        setPassword(
+                          event.target.value
+                        );
+
+                        setError("");
+                      }}
+                    />
+
+
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() =>
+                        setShowPassword(
+                          (previousValue) =>
+                            !previousValue
+                        )
+                      }
+                      disabled={loading}
+                      aria-label={
+                        showPassword
+                          ? "Hide password"
+                          : "Show password"
+                      }
+                      aria-pressed={
+                        showPassword
+                      }
+                    >
+                      {showPassword ? (
+                        <EyeOff size={19} />
+                      ) : (
+                        <Eye size={19} />
+                      )}
+                    </button>
+
+                  </div>
+
+                </div>
+
+
+                <div className="text-end mb-4">
+
+                  <Link
+                    to="/forgot-password"
+                    className="link-dark small fw-semibold text-decoration-none"
+                  >
+                    Forgot your password?
+                  </Link>
+
+                </div>
+
+
+                <div className="d-grid">
+
+                  <button
+                    type="submit"
+                    className="btn btn-warning btn-lg fw-bold rounded-3"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <span
+                          className="spinner-border spinner-border-sm me-2"
+                          aria-hidden="true"
+                        />
+
+                        Signing in...
+                      </>
+                    ) : (
+                      <>
+                        <LogIn
+                          size={18}
+                          className="me-2"
+                        />
+
+                        Log in
+                      </>
+                    )}
+                  </button>
+
+                </div>
+
+              </form>
+
+
+              {/* Register */}
+
+              <div className="text-center border-top mt-4 pt-4">
+
+                <span className="text-secondary">
+                  Don&apos;t have an account?{" "}
+                </span>
+
+
                 <Link
-                  to="/forgot-password"
-                  className={styles.forgotLink}
+                  to="/register"
+                  className="link-dark fw-bold text-decoration-none"
                 >
-                  Forgot your password?
+                  Create a workshop
                 </Link>
+
               </div>
-              */}
 
-              <button
-                type="submit"
-                className={`btn w-100 fw-bold mt-5 ${styles.btnLogin}`}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span
-                      className="spinner-border spinner-border-sm me-2"
-                      aria-hidden="true"
-                    ></span>
-                    Logging in...
-                  </>
-                ) : (
-                  "Log In"
-                )}
-              </button>
-            </form>
-
-            <div className="text-center mt-4">
-              <span className={styles.registerText}>
-                Don&apos;t have an account?{" "}
-              </span>
-
-              <Link
-                to="/register"
-                className={styles.registerLink}
-              >
-                Register
-              </Link>
             </div>
-          </div>
+
+          </section>
+
         </div>
+
       </div>
+
     </div>
   );
 };

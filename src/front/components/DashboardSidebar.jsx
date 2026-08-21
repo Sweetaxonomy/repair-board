@@ -1,29 +1,22 @@
-import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import {Home, LogOut, ClipboardPlus, Users, Car, Wrench } from "lucide-react";
+import {
+  Link,
+  NavLink,
+} from "react-router-dom";
 
-const getStoredItem = (key) => {
-  const storedValue = localStorage.getItem(key);
+import {
+  Home,
+  ClipboardPlus,
+  Users,
+  Car,
+  Wrench,
+} from "lucide-react";
 
-  if (!storedValue) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(storedValue);
-  } catch {
-    localStorage.removeItem(key);
-    return null;
-  }
-};
-
-export const DashboardSidebar = ({ role, user, employee, onLogout }) => {
-  const workshop = getStoredItem("workshop");
-  const storedEmployee = getStoredItem("employee");
-  const currentEmployee = employee || storedEmployee;
-
-  const navigate = useNavigate();
-
+export const DashboardSidebar = ({
+  role,
+  user,
+  employee,
+  workshop,
+}) => {
   const today = new Intl.DateTimeFormat("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -31,85 +24,129 @@ export const DashboardSidebar = ({ role, user, employee, onLogout }) => {
   }).format(new Date());
 
   const displayName =
-    currentEmployee?.first_name && currentEmployee?.last_name
-      ? `${currentEmployee.first_name} ${currentEmployee.last_name}`
-      : currentEmployee?.first_name ||
-        user?.employee?.first_name ||
+    employee?.first_name && employee?.last_name
+      ? `${employee.first_name} ${employee.last_name}`
+      : employee?.first_name ||
         user?.email ||
         "User";
 
-  const roleLabel = role === "admin" ? "admin" : "mechanic";
-  const homePath = role === "admin" ? "/admin" : "/mechanic";
+  const isAdmin = role === "admin";
 
-  const getNavClass = ({ isActive }) =>
-    `dashboard-sidebar-link ${isActive ? "active" : ""}`;
+  const roleLabel = isAdmin
+    ? "admin"
+    : "mechanic";
+
+  const homePath = isAdmin
+    ? "/admin"
+    : "/mechanic";
+
+  const getNavClass = ({ isActive }) => {
+    const classes = [
+      "nav-link",
+      "dashboard-sidebar-link",
+      "d-flex",
+      "align-items-center",
+      "gap-2",
+      "rounded-3",
+      "px-3",
+      "py-3",
+      "fw-semibold",
+    ];
+
+    if (isActive) {
+      classes.push("active");
+    }
+
+    return classes.join(" ");
+  };
 
   return (
-    <aside className="dashboard-sidebar">
-      <div>
-        <div className="dashboard-profile">
-          <div className="dashboard-date">
-            <span>Today is, {today}</span>
-          </div>
-
-          <button
-            type="button"
-            className="dashboard-brand"
-            onClick={() => navigate(homePath)}
-          >
-            <span className="dashboard-welcome">
-              Welcome Back {roleLabel},
-            </span>
-            <span className="dashboard-user-name">{displayName}</span>
-          </button>
-
-          <p className="dashboard-role">
-            {role === "admin" ? "Admin dashboard" : "Mechanic dashboard"}
+    <aside className="dashboard-sidebar d-flex flex-column flex-shrink-0 text-white p-3 p-lg-4">
+      <div className="dashboard-sidebar-scroll flex-grow-1 pe-md-1">
+        <header className="mb-4">
+          <p className="small text-white-50 fw-semibold mb-2">
+            Today is, {today}
           </p>
-        </div>
 
-        {role === "admin" && (
+          <Link
+            to={homePath}
+            className="d-block text-decoration-none text-white mb-2"
+          >
+            <span className="d-block fw-bold mb-2">
+              Welcome back {roleLabel},
+            </span>
+
+            <span className="dashboard-user-name d-block fw-bold lh-sm">
+              {displayName}
+            </span>
+          </Link>
+
+          <p className="small text-white-50 mb-0">
+            {isAdmin
+              ? "Admin dashboard"
+              : "Mechanic dashboard"}
+          </p>
+        </header>
+
+        {isAdmin ? (
           <>
-            <button
-              type="button"
-              className="dashboard-new-task"
-              onClick={() => navigate("/admin/services/new")}
+            <Link
+              to="/admin/services/new"
+              className="btn btn-warning w-100 d-flex align-items-center justify-content-center gap-2 fw-bold py-3 rounded-3 mb-4"
             >
               <ClipboardPlus size={18} />
+
               <span>New Task</span>
-            </button>
+            </Link>
 
-            <button
-              type="button"
-              className="dashboard-home-link"
-              onClick={() => navigate(homePath)}
+            <nav
+              className="nav flex-column gap-2"
+              aria-label="Admin navigation"
             >
-              <Home size={18} />
-              <span>Dashboard</span>
-            </button>
+              <NavLink
+                end
+                to="/admin"
+                className={getNavClass}
+              >
+                <Home size={18} />
+                <span>Dashboard</span>
+              </NavLink>
 
-            <nav className="dashboard-nav">
-              <NavLink to="/admin/mechanics" className={getNavClass}>
+              <NavLink
+                to="/admin/mechanics"
+                className={getNavClass}
+              >
                 <Wrench size={18} />
                 <span>Mechanics</span>
               </NavLink>
 
-              <NavLink to="/admin/vehicles" className={getNavClass}>
+              <NavLink
+                to="/admin/vehicles"
+                className={getNavClass}
+              >
                 <Car size={18} />
                 <span>Vehicles</span>
               </NavLink>
 
-              <NavLink to="/admin/customers" className={getNavClass}>
+              <NavLink
+                to="/admin/customers"
+                className={getNavClass}
+              >
                 <Users size={18} />
                 <span>Customers</span>
               </NavLink>
             </nav>
           </>
-        )}
-
-        {role === "mechanic" && (
-          <nav className="dashboard-nav">
-            <NavLink to="/mechanic" className={getNavClass}>
+        ) : (
+          <nav
+            className="nav flex-column gap-2"
+            aria-label="Mechanic navigation"
+          >
+            <NavLink
+              end
+              to="/mechanic"
+              className={getNavClass}
+            >
               <Wrench size={18} />
               <span>My Tasks</span>
             </NavLink>
@@ -117,42 +154,31 @@ export const DashboardSidebar = ({ role, user, employee, onLogout }) => {
         )}
       </div>
 
-      <div className="dashboard-sidebar-bottom">
-        {workshop && (
-          <div className="dashboard-workshop-info">
-            <strong className="dashboard-workshop-name">
-              {workshop.company_name}
-            </strong>
+      {workshop && (
+        <footer className="mt-auto pt-4 border-top border-secondary">
+          <strong className="d-block fs-5 text-white lh-sm mb-2">
+            {workshop.company_name}
+          </strong>
 
-            {workshop.email && (
-              <span className="dashboard-workshop-detail">
-                {workshop.email}
-              </span>
-            )}
+          {workshop.email && (
+            <span className="d-block small text-white-50 text-break">
+              {workshop.email}
+            </span>
+          )}
 
-            {workshop.phone && (
-              <span className="dashboard-workshop-detail">
-                {workshop.phone}
-              </span>
-            )}
+          {workshop.phone && (
+            <span className="d-block small text-white-50 text-break">
+              {workshop.phone}
+            </span>
+          )}
 
-            {workshop.address && (
-              <span className="dashboard-workshop-address">
-                {workshop.address}
-              </span>
-            )}
-          </div>
-        )}
-
-        <button
-          type="button"
-          className="dashboard-logout"
-          onClick={onLogout}
-        >
-          <LogOut size={18} />
-          <span>Logout</span>
-        </button>
-      </div>
+          {workshop.address && (
+            <span className="d-block small text-white-50 text-break mt-1">
+              {workshop.address}
+            </span>
+          )}
+        </footer>
+      )}
     </aside>
   );
 };

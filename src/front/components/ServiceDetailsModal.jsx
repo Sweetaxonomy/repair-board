@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { apiFetch } from "../services/api";
+import {
+  CalendarDays,
+  Gauge,
+  Pencil,
+  Phone,
+  UserRound,
+  Wrench,
+} from "lucide-react";
 
+import { apiFetch } from "../services/api";
+import { BACKEND_URL } from "../config";
 const STATUS_LABELS = {
   pending: "Pending",
   diagnosis: "Diagnosis",
@@ -32,17 +41,29 @@ const COMMENT_TYPE_LABELS = {
 };
 
 function formatDate(dateValue) {
-  if (!dateValue) return "-";
+  if (!dateValue) return "—";
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
 
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  }).format(new Date(dateValue));
+  }).format(date);
 }
 
 function formatDateTime(dateValue) {
-  if (!dateValue) return "-";
+  if (!dateValue) return "—";
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
 
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
@@ -50,23 +71,36 @@ function formatDateTime(dateValue) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(dateValue));
+  }).format(date);
 }
 
 function getMechanicName(mechanic) {
-  const fullName = `${mechanic.first_name || ""} ${mechanic.last_name || ""
-    }`.trim();
+  const fullName = `${mechanic.first_name || ""} ${
+    mechanic.last_name || ""
+  }`.trim();
 
-  return mechanic.name || fullName || mechanic.email || `Mechanic #${mechanic.id}`;
+  return (
+    mechanic.name ||
+    fullName ||
+    mechanic.email ||
+    `Mechanic #${mechanic.id}`
+  );
 }
 
-function InfoRow({ label, value }) {
-  return (
-    <div className="col-md-6 mb-3">
-      <p className="mb-1 fw-bold">{label}</p>
-      <p className="mb-0">{value || "-"}</p>
-    </div>
-  );
+function getVehicleName(service) {
+  const vehicleName = `${service?.vehicle_brand || ""} ${
+    service?.vehicle_model || ""
+  }`.trim();
+
+  return vehicleName || "Unknown vehicle";
+}
+
+function formatServiceType(value) {
+  if (!value) return "—";
+
+  return value
+    .replaceAll("_", " ")
+    .replace(/^\w/, (letter) => letter.toUpperCase());
 }
 
 export function ServiceDetailsModal({
@@ -76,6 +110,7 @@ export function ServiceDetailsModal({
   onServiceUpdated,
 }) {
   const fileInputRef = useRef(null);
+
   const [service, setService] = useState(null);
   const [comments, setComments] = useState([]);
 
@@ -87,12 +122,12 @@ export function ServiceDetailsModal({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingComment, setSavingComment] = useState(false);
+
   const [showMechanicMenu, setShowMechanicMenu] = useState(false);
   const [availableMechanics, setAvailableMechanics] = useState([]);
   const [loadingMechanics, setLoadingMechanics] = useState(false);
   const [reassigningMechanic, setReassigningMechanic] = useState(false);
 
-  const isMechanic = role === "mechanic";
   const isAdmin = role === "admin";
 
   async function loadDetails() {
@@ -166,13 +201,13 @@ export function ServiceDetailsModal({
     }
   }
 
-
   useEffect(() => {
     loadDetails();
   }, [serviceId]);
 
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
+
     document.body.style.overflow = "hidden";
 
     return () => {
@@ -180,8 +215,20 @@ export function ServiceDetailsModal({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (commentImagePreview) {
+        URL.revokeObjectURL(commentImagePreview);
+      }
+    };
+  }, [commentImagePreview]);
+
   function handleCommentImageChange(event) {
     const selectedImage = event.target.files[0];
+
+    if (commentImagePreview) {
+      URL.revokeObjectURL(commentImagePreview);
+    }
 
     if (!selectedImage) {
       setCommentImage(null);
@@ -208,6 +255,7 @@ export function ServiceDetailsModal({
       const token = localStorage.getItem("token");
 
       const formData = new FormData();
+
       formData.append("comment", commentText.trim());
       formData.append("comment_type", commentType);
 
@@ -216,7 +264,7 @@ export function ServiceDetailsModal({
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/services/${serviceId}/comments`,
+        `${BACKEND_URL}/api/services/${serviceId}/comments`,
         {
           method: "POST",
           headers: {
@@ -237,6 +285,11 @@ export function ServiceDetailsModal({
       setCommentText("");
       setCommentType("note");
       setCommentImage(null);
+
+      if (commentImagePreview) {
+        URL.revokeObjectURL(commentImagePreview);
+      }
+
       setCommentImagePreview("");
 
       if (fileInputRef.current) {
@@ -246,7 +299,7 @@ export function ServiceDetailsModal({
       await loadDetails();
 
       if (onServiceUpdated) {
-        onServiceUpdated();
+        await onServiceUpdated();
       }
     } catch (error) {
       setError(error.message || "Could not save comment.");
@@ -261,6 +314,12 @@ export function ServiceDetailsModal({
     }
   }
 
+  const customerPhone =
+    service?.customer_phone ||
+    service?.customer?.phone ||
+    service?.customer?.phone_number ||
+    "";
+
   return (
     <>
       <div
@@ -271,221 +330,372 @@ export function ServiceDetailsModal({
         onMouseDown={handleBackdropClick}
       >
         <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-          <div className="modal-content ">
-            <div className="modal-header bg-warning text-dark p-4">
-              <div>
-                <p className="mb-0 small fw-bold">
-                  {isMechanic ? "My Task" : "Service Details"}
-                </p>
-
-                <h5 className="modal-title fw-bold">
-                  {service?.title || "Service"}
-                </h5>
-              </div>
+          <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div className="modal-header bg-dark border-0 px-4 py-3">
+              <h2 className="h6 text-warning fw-bold text-uppercase mb-0">
+                Service details
+              </h2>
 
               <button
                 type="button"
-                className="btn-close"
+                className="btn-close btn-close-white"
                 onClick={onClose}
                 aria-label="Close"
-              ></button>
+              />
             </div>
 
-            <div className="modal-body m-4">
+            <div className="modal-body p-0">
               {error && (
-                <div className="alert alert-warning" role="alert">
-                  {error}
+                <div className="px-4 pt-4">
+                  <div className="alert alert-warning rounded-3 mb-0">
+                    {error}
+                  </div>
                 </div>
               )}
 
               {loading ? (
-                <div className="text-center py-4">
-                  <div className="spinner-border text-warning mb-3"></div>
-                  <p className="text-muted">Loading service details...</p>
+                <div className="text-center py-5">
+                  <div className="spinner-border text-warning mb-3" />
+
+                  <p className="text-muted mb-0">
+                    Loading service details...
+                  </p>
                 </div>
               ) : !service ? (
-                <div className="alert alert-info">Service not found.</div>
+                <div className="p-4">
+                  <div className="alert alert-info mb-0">
+                    Service not found.
+                  </div>
+                </div>
               ) : (
-                <>
-                  <div className="mb-4">
-                    <div className="d-flex justify-content-between align-items-start mb-3">
-                      <div className="d-flex gap-2">
-                        <strong className="badge bg-warning text-dark">
-                          {STATUS_LABELS[service.status] || service.status}
-                        </strong>
+                <div className="px-4 py-4">
+                  <section className="mb-4">
+                    <h3 className="h4 fw-bold mb-1">
+                      {service.title || "Service"}
+                    </h3>
 
-                        <strong className="badge bg-dark">
-                          {PRIORITY_LABELS[service.priority] ||
-                            service.priority ||
-                            "Normal"}
-                        </strong>
-                      </div>
+                    <p className="text-secondary mb-0">
+                      {getVehicleName(service)}
+                      {service.vehicle_plate
+                        ? ` · ${service.vehicle_plate}`
+                        : ""}
+                    </p>
+                  </section>
 
-                      {/* --- INICIO DEL BOTÓN AGREGADO --- */}
-                      {isAdmin && (
-                        <div className="dropdown">
-                          <button
-                            type="button"
-                            className="btn btn-warning text-dark fw-bold btn-sm dropdown-toggle"
-                            onClick={handleToggleMechanicMenu}
-                            disabled={loadingMechanics || reassigningMechanic}
-                          >
-                            {service.employee_id ? "Reassign mechanic" : "Assign mechanic"}
-                          </button>
+                  <section className="mb-4">
+                    <p className="text-secondary text-uppercase small fw-bold mb-2">
+                      Work notes
+                    </p>
 
-                          {showMechanicMenu && (
-                            <ul className="dropdown-menu dropdown-menu-end show shadow">
-                              {loadingMechanics ? (
-                                <li>
-                                  <span className="dropdown-item text-muted">
-                                    Loading mechanics...
-                                  </span>
-                                </li>
-                              ) : availableMechanics.length === 0 ? (
-                                <li>
-                                  <span className="dropdown-item text-muted">
-                                    No mechanics available
-                                  </span>
-                                </li>
-                              ) : (
-                                availableMechanics.map((mechanic) => {
-                                  const isCurrentMechanic =
-                                    Number(service.employee_id) === Number(mechanic.id);
+                    <div className="border-start border-3 border-warning ps-3">
+                      <p className="fw-semibold mb-2">
+                        {service.description ||
+                          "No description provided for this service."}
+                      </p>
 
-                                  return (
-                                    <li key={mechanic.id}>
-                                      <button
-                                        className="dropdown-item"
-                                        type="button"
-                                        disabled={reassigningMechanic || isCurrentMechanic}
-                                        onClick={() => handleReassignMechanic(mechanic.id)}
-                                      >
-                                        {getMechanicName(mechanic)}
-                                        {isCurrentMechanic ? " (current)" : ""}
-                                      </button>
-                                    </li>
-                                  );
-                                })
-                              )}
-                            </ul>
-                          )}
-                        </div>
+                      {service.observations && (
+                        <p className="text-secondary small mb-0">
+                          {service.observations}
+                        </p>
                       )}
+                    </div>
+                  </section>
 
+                  <section className="row g-0 border-top border-bottom py-3 mb-4">
+                    <div className="col-sm-4 pe-sm-4">
+                      <p className="text-secondary text-uppercase small fw-bold mb-1">
+                        Status
+                      </p>
 
+                      <p className="fw-bold mb-0">
+                        {STATUS_LABELS[service.status] || service.status}
+                      </p>
                     </div>
 
-                    <p className="mb-0">
-                      {service.description || "No description provided."}
-                    </p>
-                  </div>
+                    <div className="col-sm-4 px-sm-4 border-start border-warning">
+                      <p className="text-secondary text-uppercase small fw-bold mb-1">
+                        Priority
+                      </p>
 
-                  <hr />
+                      <p className="fw-bold mb-0">
+                        {PRIORITY_LABELS[service.priority] ||
+                          service.priority ||
+                          "Normal"}
+                      </p>
+                    </div>
 
-                  <div className="row">
-                    <InfoRow
-                      label="Vehicle"
-                      value={`${service.vehicle_brand || ""} ${service.vehicle_model || ""
-                        }`.trim()}
-                    />
+                    <div className="col-sm-4 ps-sm-4 border-start border-warning">
+                      <p className="text-secondary text-uppercase small fw-bold mb-1">
+                        Service type
+                      </p>
 
-                    <InfoRow label="Plate" value={service.vehicle_plate} />
+                      <p className="fw-bold mb-0">
+                        {formatServiceType(service.service_type)}
+                      </p>
+                    </div>
+                  </section>
 
-                    <InfoRow label="Customer" value={service.customer_name} />
+                  <section className="mb-4">
+                    <div className="row g-4">
+                      <div className="col-md-6">
+                        <div className="d-flex gap-3">
+                          <div
+                            className="bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{
+                              width: "42px",
+                              height: "42px",
+                            }}
+                          >
+                            <UserRound size={18} className="text-warning" />
+                          </div>
 
-                    <InfoRow
-                      label="Mechanic"
-                      value={service.employee_name || "Unassigned"}
-                    />
-
-                    <InfoRow
-                      label="Entry mileage"
-                      value={
-                        service.entry_mileage
-                          ? `${service.entry_mileage} km`
-                          : "-"
-                      }
-                    />
-
-                    <InfoRow
-                      label="Service type"
-                      value={service.service_type}
-                    />
-
-                    <InfoRow
-                      label="Start date"
-                      value={formatDate(service.start_date)}
-                    />
-
-                    <InfoRow
-                      label="End date"
-                      value={formatDate(service.end_date)}
-                    />
-                  </div>
-
-                  {service.observations && (
-                    <>
-                      <hr />
-
-                      <div className="mb-4">
-                        <h6 className="fw-bold">Observations</h6>
-                        <p className="mb-0">{service.observations}</p>
-                      </div>
-                    </>
-                  )}
-
-                  <hr />
-
-                  <div className="mb-4">
-                    <h6 className="fw-bold">Comments ({comments.length})</h6>
-
-                    {comments.length === 0 ? (
-                      <p className="text-muted mb-0">No comments yet.</p>
-                    ) : (
-                      <div className="list-group">
-                        {comments.map((comment) => (
-                          <div key={comment.id} className="list-group-item">
-                            <div className="d-flex justify-content-between mb-2">
-                              <strong>
-                                {comment.author_name || "Unknown author"}
-                              </strong>
-
-                              <p className="mb-0 small text-muted">
-                                {formatDateTime(comment.created_at)}
-                              </p>
-                            </div>
-
-                            <p className="mb-2 small text-muted">
-                              {COMMENT_TYPE_LABELS[comment.comment_type] ||
-                                comment.comment_type ||
-                                "Note"}
+                          <div>
+                            <p className="text-secondary small fw-bold mb-1">
+                              Customer
                             </p>
 
-                            <p className="mb-0">{comment.comment}</p>
+                            <p className="fw-semibold mb-1">
+                              {service.customer_name || "Unknown customer"}
+                            </p>
+
+                            {customerPhone ? (
+                              <a
+                                href={`tel:${customerPhone}`}
+                                className="d-inline-flex align-items-center gap-2 text-dark text-decoration-none small fw-semibold"
+                              >
+                                <Phone size={14} className="text-warning" />
+
+                                {customerPhone}
+                              </a>
+                            ) : (
+                              <span className="small text-secondary">
+                                No phone available
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-md-6">
+                        <div className="d-flex gap-3">
+                          <div
+                            className="bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{
+                              width: "42px",
+                              height: "42px",
+                            }}
+                          >
+                            <Wrench size={18} className="text-warning" />
+                          </div>
+
+                          <div className="flex-grow-1">
+                            <p className="text-secondary small fw-bold mb-1">
+                              Mechanic
+                            </p>
+
+                            <div className="d-flex align-items-center justify-content-between gap-3">
+                              <p
+                                className={`fw-semibold mb-0 ${
+                                  service.employee_name
+                                    ? "text-success"
+                                    : "text-danger"
+                                }`}
+                              >
+                                {service.employee_name || "Unassigned"}
+                              </p>
+
+                              {isAdmin && (
+                                <div className="dropdown">
+                                  <button
+                                    type="button"
+                                    className="btn btn-warning btn-sm d-inline-flex align-items-center gap-2 fw-semibold px-3"
+                                    title="Change mechanic"
+                                    aria-label="Change mechanic"
+                                    onClick={handleToggleMechanicMenu}
+                                    disabled={
+                                      loadingMechanics ||
+                                      reassigningMechanic
+                                    }
+                                  >
+                                    <Pencil size={13} />
+                                    Edit
+                                  </button>
+
+                                  {showMechanicMenu && (
+                                    <ul className="dropdown-menu dropdown-menu-end show shadow-sm">
+                                      {loadingMechanics ? (
+                                        <li>
+                                          <span className="dropdown-item text-muted">
+                                            Loading mechanics...
+                                          </span>
+                                        </li>
+                                      ) : availableMechanics.length === 0 ? (
+                                        <li>
+                                          <span className="dropdown-item text-muted">
+                                            No mechanics available
+                                          </span>
+                                        </li>
+                                      ) : (
+                                        availableMechanics.map((mechanic) => {
+                                          const isCurrentMechanic =
+                                            Number(service.employee_id) ===
+                                            Number(mechanic.id);
+
+                                          return (
+                                            <li key={mechanic.id}>
+                                              <button
+                                                type="button"
+                                                className="dropdown-item"
+                                                disabled={
+                                                  reassigningMechanic ||
+                                                  isCurrentMechanic
+                                                }
+                                                onClick={() =>
+                                                  handleReassignMechanic(
+                                                    mechanic.id
+                                                  )
+                                                }
+                                              >
+                                                {getMechanicName(mechanic)}
+
+                                                {isCurrentMechanic
+                                                  ? " (current)"
+                                                  : ""}
+                                              </button>
+                                            </li>
+                                          );
+                                        })
+                                      )}
+                                    </ul>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="border-top pt-4 mb-4">
+                    <div className="row g-4">
+                      <div className="col-md-6">
+                        <div className="d-flex gap-3">
+                          <CalendarDays
+                            size={18}
+                            className="text-warning mt-1"
+                          />
+
+                          <div>
+                            <p className="text-secondary small fw-bold mb-1">
+                              Entry date
+                            </p>
+
+                            <p className="fw-semibold mb-0">
+                              {formatDate(service.start_date)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-md-6">
+                        <div className="d-flex gap-3">
+                          <Gauge
+                            size={18}
+                            className="text-warning mt-1"
+                          />
+
+                          <div>
+                            <p className="text-secondary small fw-bold mb-1">
+                              Entry mileage
+                            </p>
+
+                            <p className="fw-semibold mb-0">
+                              {service.entry_mileage
+                                ? `${service.entry_mileage} km`
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="border-top pt-4 mb-4">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h5 className="fw-bold mb-0">
+                        Comments
+                      </h5>
+
+                      <span className="badge rounded-pill bg-warning-subtle text-dark border border-warning-subtle">
+                        {comments.length}
+                      </span>
+                    </div>
+
+                    {comments.length === 0 ? (
+                      <div className="bg-light rounded-3 px-3 py-4 text-center">
+                        <p className="text-secondary small mb-0">
+                          No comments have been added yet.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="d-flex flex-column gap-3">
+                        {comments.map((comment) => (
+                          <article
+                            key={comment.id}
+                            className="border rounded-3 p-3 bg-white"
+                          >
+                            <div className="d-flex justify-content-between align-items-start gap-3">
+                              <div>
+                                <p className="fw-bold mb-1">
+                                  {comment.author_name || "Unknown author"}
+                                </p>
+
+                                <span className="badge bg-light text-secondary border fw-semibold">
+                                  {COMMENT_TYPE_LABELS[
+                                    comment.comment_type
+                                  ] ||
+                                    comment.comment_type ||
+                                    "Note"}
+                                </span>
+                              </div>
+
+                              <span className="text-secondary small text-nowrap">
+                                {formatDateTime(comment.created_at)}
+                              </span>
+                            </div>
+
+                            <p className="mb-0 mt-3">
+                              {comment.comment}
+                            </p>
 
                             {comment.image_url && (
                               <img
                                 src={comment.image_url}
                                 alt="Service comment"
-                                className="img-fluid rounded border mt-3"
+                                className="img-fluid rounded-3 border mt-3"
                                 style={{
                                   maxHeight: "260px",
                                   objectFit: "cover",
                                 }}
                               />
                             )}
-                          </div>
+                          </article>
                         ))}
                       </div>
                     )}
-                  </div>
+                  </section>
 
                   <form onSubmit={handleSubmitComment}>
-                    <div className="border rounded p-3 bg-light">
-                      <h6 className="fw-bold mb-3">Add Comment</h6>
+                    <div className="bg-light border rounded-4 p-4">
+                      <h5 className="fw-bold mb-3">
+                        Add comment
+                      </h5>
 
                       <div className="mb-3">
-                        <label className="form-label">Comment type</label>
+                        <label className="form-label small fw-bold">
+                          Comment type
+                        </label>
 
                         <select
                           className="form-select"
@@ -496,7 +706,10 @@ export function ServiceDetailsModal({
                           disabled={savingComment}
                         >
                           {COMMENT_TYPE_OPTIONS.map((type) => (
-                            <option key={type.value} value={type.value}>
+                            <option
+                              key={type.value}
+                              value={type.value}
+                            >
                               {type.label}
                             </option>
                           ))}
@@ -504,12 +717,14 @@ export function ServiceDetailsModal({
                       </div>
 
                       <div className="mb-3">
-                        <label className="form-label">Comment</label>
+                        <label className="form-label small fw-bold">
+                          Comment
+                        </label>
 
                         <textarea
                           className="form-control"
                           rows="3"
-                          placeholder="Write a comment..."
+                          placeholder="Write an update about this service..."
                           value={commentText}
                           onChange={(event) =>
                             setCommentText(event.target.value)
@@ -519,7 +734,9 @@ export function ServiceDetailsModal({
                       </div>
 
                       <div className="mb-3">
-                        <label className="form-label">Upload image</label>
+                        <label className="form-label small fw-bold">
+                          Add image
+                        </label>
 
                         <input
                           ref={fileInputRef}
@@ -533,14 +750,10 @@ export function ServiceDetailsModal({
 
                       {commentImagePreview && (
                         <div className="mb-3">
-                          <p className="small text-muted mb-2">
-                            Image preview:
-                          </p>
-
                           <img
                             src={commentImagePreview}
                             alt="Selected service comment"
-                            className="img-fluid rounded border"
+                            className="img-fluid rounded-3 border"
                             style={{
                               maxHeight: "220px",
                               objectFit: "cover",
@@ -549,23 +762,27 @@ export function ServiceDetailsModal({
                         </div>
                       )}
 
-                      <button
-                        type="submit"
-                        className="btn btn-warning fw-bold"
-                        disabled={savingComment}
-                      >
-                        {savingComment ? "Saving..." : "Save comment"}
-                      </button>
+                      <div className="d-flex justify-content-end">
+                        <button
+                          type="submit"
+                          className="btn btn-warning fw-bold px-4"
+                          disabled={savingComment}
+                        >
+                          {savingComment
+                            ? "Saving..."
+                            : "Save comment"}
+                        </button>
+                      </div>
                     </div>
                   </form>
-                </>
+                </div>
               )}
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-footer border-0 px-4 pb-4 pt-0">
               <button
                 type="button"
-                className="btn btn-dark"
+                className="btn btn-dark px-4 fw-semibold"
                 onClick={onClose}
               >
                 Done
@@ -575,7 +792,7 @@ export function ServiceDetailsModal({
         </div>
       </div>
 
-      <div className="modal-backdrop show"></div>
+      <div className="modal-backdrop show" />
     </>
   );
 }

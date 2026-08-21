@@ -1,164 +1,236 @@
-.app-customer-container {
-    --primary-orange: #ffb800; 
-    --hover-orange: #e0a100;
-    background-color: #f8f9fa;
-    font-family: system-ui, -apple-system, sans-serif;
+/* =========================================================
+   CUSTOMER PAGE
+   Bootstrap handles almost all layout and components.
+   ========================================================= */
+
+.customer-page {
+  width: 100%;
 }
 
-.header-title {
-    color: #333333;
-    font-weight: 700;
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.customer-page-icon {
+  width: 46px;
+  height: 46px;
 }
 
-.btn-yellow {
-    background-color:#ffc107;
-    color: #000000; 
+
+/* =========================================================
+   TOOLBAR DROPDOWNS
+   ========================================================= */
+
+.customer-dropdown-menu {
+  z-index: 1060;
+  min-width: 210px;
 }
 
-.btn-yellow:hover {
-    background-color: #e0a100;
-    color: #ffffff;
+.customer-column-option {
+  cursor: pointer;
 }
 
-.btn-save-customer {
-    background-color:#ffc107;
-    color: #000000; 
+
+/* =========================================================
+   ADVANCED FILTERS
+   ========================================================= */
+
+.customer-filter-panel {
+  border-left: 4px solid #ffc107 !important;
 }
 
-.btn-save-customer:hover {
-    background-color: #e0a100;
-    color: #ffffff;
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.customer-table {
+  min-width: 780px;
 }
 
-.btn-orange {
-    background-color: var(--primary-orange);
-    color: #000000;
-    border: none;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+.customer-table thead th {
+  background-color: #f8f9fa;
+
+  color: #495057;
+
+  font-size: 0.78rem;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  padding: 0.9rem 1rem;
+
+  border-bottom: 1px solid #dee2e6;
+
+  white-space: nowrap;
 }
 
-.btn-orange:hover {
-    background-color: var(--hover-orange);
-    color: #000000;
+.customer-table tbody td {
+  padding: 1rem;
+
+  border-color: #edf0f2;
 }
 
-.btn.btn-orange-action {
-    background-color: #ffc107;
-    color: #000000;
-    border: 1px solid #ffc107; 
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+.customer-table tbody tr {
+  transition:
+    background-color 0.15s ease;
 }
 
-.btn.btn-orange-action:hover {
-    background-color: #e0a100;
-    color: #ffffff;
-    border-color: #e0a100;
+.customer-table tbody tr:hover td {
+  background-color: #fffdf5;
 }
 
-.text-muted-custom {
-    font-size: 0.2rem;
-    color: #6c757d;
+
+/* =========================================================
+   CUSTOMER AVATAR
+   ========================================================= */
+
+.customer-avatar {
+  width: 42px;
+  height: 42px;
+
+  font-size: 0.85rem;
 }
 
-.select-records {
-    max-width: 140px;
-    display: inline-block;
+
+/* =========================================================
+   ADDRESS
+   ========================================================= */
+
+.customer-address {
+  max-width: 320px;
+
+  white-space: normal;
 }
 
-.table-card-wrapper {
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
+
+/* =========================================================
+   ACTION BUTTONS
+   ========================================================= */
+
+.customer-action-button {
+  width: 34px;
+  height: 34px;
+
+  padding: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: transparent;
+
+  border: 1px solid #dee2e6;
+
+  color: #6c757d;
+
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.customer-workshop-table thead th {
-    background-color: #ffffff;
-    color: #212529;
-    font-weight: 600;
-    vertical-align: middle;
+
+/* Edit stays neutral until hover */
+
+.customer-action-edit:hover {
+  background-color: rgba(255, 193, 7, 0.14);
+
+  border-color: #ffc107;
+
+  color: #a97700;
 }
 
-.customer-workshop-table .search-row th {
-    padding: 4px 8px;
-    background-color: #fdfdfd;
+
+/* Delete stays neutral until hover */
+
+.customer-action-delete:hover {
+  background-color: rgba(220, 53, 69, 0.08);
+
+  border-color: #dc3545;
+
+  color: #dc3545;
 }
 
-.customer-workshop-table .search-row input::placeholder {
-    color: #adb5bd;
-    font-size: 0.8rem;
+.customer-action-delete:disabled {
+  opacity: 0.5;
 }
 
-.backend-dropdown {
-    z-index: 1050;
-    min-width: 240px;
-    border-radius: 6px;
-    border: 1px solid #ced4da;
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.customer-record-select {
+  width: 75px;
 }
 
-.style-cursor {
-    cursor: pointer;
-}
-.action-icon-btn {
-    background: transparent;
-    border: none;
-    padding: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.1s ease;
+.customer-page
+.pagination
+.page-item.active
+.page-link {
+  background-color: #ffc107;
+
+  border-color: #ffc107;
+
+  color: #212529;
+
+  font-weight: 700;
 }
 
-.action-icon-btn:hover {
-    transform: scale(1.1);
+.customer-page
+.pagination
+.page-link {
+  color: #495057;
 }
 
-.action-edit {
-    color: var(--primary-orange);
+.customer-page
+.pagination
+.page-link:hover {
+  background-color: #212529;
+
+  border-color: #212529;
+
+  color: #ffffff;
 }
 
-.action-delete {
-    color: #dc3545; 
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.customer-modal-layer {
+  z-index: 1060;
+
+  background-color: rgba(
+    0,
+    0,
+    0,
+    0.58
+  );
 }
 
-.pagination .page-link:hover {
-    background-color: #343a40;
-    border-color: #343a40;
-    color: #ffffff;
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+  .customer-table {
+    min-width: 700px;
+  }
 }
 
-.pagination .page-item.active .page-link {
-    background-color: var(--primary-orange);
-    border-color: var(--primary-orange);
-    color: #000000;
-    font-weight: bold;
-}
 
-.pagination .page-item.disabled .page-link {
-    background-color: #343639;
-    border-color: #495057;
-    color: #ffffff;
-}
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
 
-.customer-workshop-table thead th {
-    background-color: #ffffff;
-    color: #212529;
-    font-weight: 700;
-    vertical-align: middle;
-    padding: 0.3rem 0.90rem 
-}
-
-.customer-workshop-table tbody td {
-    padding: 1rem 0.70rem; 
-    vertical-align: middle;
-}
-
-.modal-content {
-    border-radius: 14px;
-}
-
-.form-control::placeholder {
-    color: #adb5bd; 
-    opacity: 1; 
-    font-weight: 400;
+@media (prefers-reduced-motion: reduce) {
+  .customer-table tbody tr,
+  .customer-action-button {
+    transition: none;
+  }
 }

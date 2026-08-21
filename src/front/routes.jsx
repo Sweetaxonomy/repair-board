@@ -1,88 +1,132 @@
-import { createBrowserRouter, createRoutesFromElements, Route } from "react-router-dom";
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  Route,
+} from "react-router-dom";
 
-import { Layout } from "./pages/Layout";
+import { ResetPassword } from "./pages/ResetPassword";
+import { AppLayout } from "./layouts/AppLayout";
+import { DashboardLayout } from "./layouts/DashboardLayout";
+
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
-import { Dashboard } from "./pages/Dashboard";
-import { Single } from "./pages/Single";
-import { Demo } from "./pages/Demo";
 import { ForgotPassword } from "./pages/ForgotPassword";
+import { DashboardRedirect } from "./pages/DashboardRedirect";
 
-import { DashboardLayout } from "./pages/DashboardLayout";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { MechanicDashboard } from "./pages/MechanicDashboard";
 
 import CustomerList from "./pages/CustomerList";
-import { ServiceFormPage } from "./pages/ServiceFormPage";
 import MechanicList from "./pages/MechanicList";
 import VehicleList from "./pages/VehicleList";
+import { ServiceFormPage } from "./pages/ServiceFormPage";
+
+const NotFound = () => {
+  return (
+    <main className="container py-5">
+      <h1 className="h3">Page not found</h1>
+
+      <p className="text-muted mb-0">
+        The page you are looking for does not exist.
+      </p>
+    </main>
+  );
+};
 
 const Routes = createRoutesFromElements(
-    <Route path="/" element={<Layout />} errorElement={<h1>Not found! :c</h1>}>
-        <Route index element={<Home />} />
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
-        <Route path="forgot-password" element={<ForgotPassword />} />
-        <Route path="dashboard" element={<Dashboard />} />
+  <Route
+    path="/"
+    element={<AppLayout />}
+    errorElement={<NotFound />}
+  >
+    {/* Public area */}
 
-        <Route
-            path="admin"
-            element={
-                <DashboardLayout allowedRole="admin">
-                    <AdminDashboard />
-                </DashboardLayout>
-            }
-        />
+    <Route index element={<Home />} />
 
-        <Route
-            path="admin/customers"
-            element={
-                <DashboardLayout allowedRole="admin">
-                    <CustomerList />
-                </DashboardLayout>
-            }
-        />
+    <Route
+      path="login"
+      element={<Login />}
+    />
 
-        <Route
-            path="admin/mechanics"
-            element={
-                <DashboardLayout allowedRole="admin">
-                    <MechanicList />
-                </DashboardLayout>
-            }
-        />
+    <Route
+      path="register"
+      element={<Register />}
+    />
 
-        <Route
-            path="admin/vehicles"
-            element={
-                <DashboardLayout allowedRole="admin">
-                    <VehicleList />
-                </DashboardLayout>
-            }
-        />
+    <Route
+      path="forgot-password"
+      element={<ForgotPassword />}
+    />
 
-        <Route
-            path="admin/services/new"
-            element={
-                <DashboardLayout allowedRole="admin">
-                    <ServiceFormPage />
-                </DashboardLayout>
-            }
-        />
+    <Route
+      path="reset-password"
+      element={<ResetPassword />}
+    />
 
-        <Route
-            path="mechanic"
-            element={
-                <DashboardLayout allowedRole="mechanic">
-                    <MechanicDashboard />
-                </DashboardLayout>
-            }
-        />
+    {/* Redirect according to logged-in role */}
 
-        <Route path="single/:theId" element={<Single />} />
-        <Route path="demo" element={<Demo />} />
-    </Route> 
+    <Route
+      path="dashboard"
+      element={<DashboardRedirect />}
+    />
+
+    {/* Admin area */}
+
+    <Route
+      path="admin"
+      element={
+        <DashboardLayout allowedRole="admin" />
+      }
+    >
+      <Route
+        index
+        element={<AdminDashboard />}
+      />
+
+      <Route
+        path="customers"
+        element={<CustomerList />}
+      />
+
+      <Route
+        path="mechanics"
+        element={<MechanicList />}
+      />
+
+      <Route
+        path="vehicles"
+        element={<VehicleList />}
+      />
+
+      <Route
+        path="services/new"
+        element={<ServiceFormPage />}
+      />
+    </Route>
+
+    {/* Mechanic area */}
+
+    <Route
+      path="mechanic"
+      element={
+        <DashboardLayout allowedRole="mechanic" />
+      }
+    >
+      <Route
+        index
+        element={<MechanicDashboard />}
+      />
+    </Route>
+
+    {/* Unknown routes */}
+
+    <Route
+      path="*"
+      element={<NotFound />}
+    />
+  </Route>
 );
 
-export const router = createBrowserRouter(Routes);
+export const router =
+  createBrowserRouter(Routes);
